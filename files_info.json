@@ -1,0 +1,47 @@
+{
+  "files": [
+    {
+      "filename": "demo.txt",
+      "original_name": "demo.txt",
+      "size": 553,
+      "upload_time": "2026-07-19T23:26:32.891089",
+      "path": "uploads\\demo.txt"
+    },
+    {
+      "filename": "WorkDiary_20260719_233557.exe",
+      "original_name": "WorkDiary_20260719_233557.exe",
+      "size": 106543748,
+      "upload_time": "2026-07-19T23:35:57.547571",
+      "path": "uploads\\WorkDiary_20260719_233557.exe"
+    },
+    {
+      "filename": "WorkDiary_20260719_233559.exe",
+      "original_name": "WorkDiary_20260719_233559.exe",
+      "size": 106543748,
+      "upload_time": "2026-07-19T23:36:00.155232",
+      "path": "uploads\\WorkDiary_20260719_233559.exe"
+    },
+    {
+      "filename": "WorkDiary_20260719_233722.exe",
+      "original_name": "WorkDiary_20260719_233722.exe",
+      "size": 106543748,
+      "upload_time": "2026-07-19T23:37:22.561772",
+      "path": "uploads\\WorkDiary_20260719_233722.exe"
+    },
+    {
+      "filename": "WorkDiary_20260719_233911.exe",
+      "original_name": "WorkDiary.exe",
+      "size": 106543748,
+      "upload_time": "2026-07-19T23:39:11.724959",
+      "path": "E:\\AI Website\\website\\uploads\\WorkDiary_20260719_233911.exe"
+    },
+    {
+      "filename": "WorkDiary_20260719_235032.exe",
+      "original_name": "WorkDiary.exe",
+      "size": 106543748,
+      "upload_time": "2026-07-19T23:50:32.602777",
+      "path": "E:\\AI Website\\website\\uploads\\WorkDiary_20260719_235032.exe"
+    }
+  ],
+  "current_version": "WorkDiary_20260719_233911.exe"
+}
