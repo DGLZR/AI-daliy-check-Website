@@ -1,44 +1,107 @@
-from flask import Flask, send_from_directory, request, jsonify, redirect, url_for
+from flask import Flask, send_from_directory, request, jsonify, session
 import os
 import json
-from datetime import datetime
+import csv
+import smtplib
+import random
+import string
+from datetime import datetime, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
-
-# 加载配置文件
-config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
-if os.path.exists(config_path):
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = json.load(f)
-else:
-    config = {
-        'upload': {
-            'max_size_mb': 500,
-            'allowed_extensions': ['exe', 'zip', 'rar', '7z'],
-            'upload_folder': 'uploads'
-        }
-    }
+from superadmin import superadmin_bp
 
 app = Flask(__name__, static_folder='static')
+app.secret_key = os.urandom(24).hex()
+app.register_blueprint(superadmin_bp)
 
-# 配置
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), config['upload']['upload_folder'])
-ALLOWED_EXTENSIONS = set(config['upload']['allowed_extensions'])
-MAX_CONTENT_LENGTH = config['upload']['max_size_mb'] * 1024 * 1024
+# ============ 配置 ============
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(BASE_DIR, 'config.json')
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+USERS_CSV = os.path.join(DATA_DIR, 'users.csv')
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+FILES_INFO_PATH = os.path.join(BASE_DIR, 'files_info.json')
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+# 管理员账号
+ADMIN_USERNAME = 'frog'
+ADMIN_PASSWORD = 'Ab130108'
 
-# 确保上传目录存在
+# 验证码存储
+verification_codes = {}
+
+# 确保目录存在
+os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# 存储文件信息的JSON文件
-FILES_INFO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'files_info.json')
+# 加载配置
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {
+        'site': {'name': '绿豆蛙日报助手'},
+        'upload': {'max_size_mb': 500, 'allowed_extensions': ['exe', 'zip', 'rar', '7z']},
+        'smtp': {'server': 'smtp.qq.com', 'port': 465, 'email': '', 'password': '', 'code_expire': 5}
+    }
 
+config = load_config()
+
+# ============ CSV用户管理 ============
+def init_csv():
+    if not os.path.exists(USERS_CSV):
+        with open(USERS_CSV, 'w', newline='', encoding='utf-8') as f:
+            csv.writer(f).writerow(['邮箱', '密码', '注册时间', '状态', '最近登录时间'])
+
+def read_users():
+    init_csv()
+    users = []
+    with open(USERS_CSV, 'r', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            users.append(row)
+    return users
+
+def write_users(users):
+    with open(USERS_CSV, 'w', newline='', encoding='utf-8') as f:
+        if users:
+            writer = csv.DictWriter(f, fieldnames=users[0].keys())
+            writer.writeheader()
+            writer.writerows(users)
+        else:
+            csv.writer(f).writerow(['邮箱', '密码', '注册时间', '状态', '最近登录时间'])
+
+def find_user(email):
+    for user in read_users():
+        if user['邮箱'] == email:
+            return user
+    return None
+
+def add_user(email, password):
+    users = read_users()
+    users.append({
+        '邮箱': email,
+        '密码': password,
+        '注册时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        '状态': '正常',
+        '最近登录时间': ''
+    })
+    write_users(users)
+
+def update_user(email, updates):
+    users = read_users()
+    for user in users:
+        if user['邮箱'] == email:
+            user.update(updates)
+    write_users(users)
+
+def delete_user(email):
+    write_users([u for u in read_users() if u['邮箱'] != email])
+
+# ============ 文件管理 ============
 def load_files_info():
     if os.path.exists(FILES_INFO_PATH):
         with open(FILES_INFO_PATH, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            # 确保有current_version字段
             if 'current_version' not in data:
                 data['current_version'] = None
             return data
@@ -49,9 +112,38 @@ def save_files_info(info):
         json.dump(info, f, ensure_ascii=False, indent=2)
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in set(config['upload']['allowed_extensions'])
 
-# 静态文件路由
+# ============ 邮件发送 ============
+def generate_code():
+    return ''.join(random.choices(string.digits, k=6))
+
+def send_email(to_email, subject, content):
+    smtp = config.get('smtp', {})
+    if not smtp.get('email') or not smtp.get('password'):
+        return False, 'SMTP邮箱未配置'
+    
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = smtp['email']
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(content, 'html', 'utf-8'))
+        
+        if smtp['port'] == 465:
+            server = smtplib.SMTP_SSL(smtp['server'], smtp['port'])
+        else:
+            server = smtplib.SMTP(smtp['server'], smtp['port'])
+            server.starttls()
+        
+        server.login(smtp['email'], smtp['password'])
+        server.send_message(msg)
+        server.quit()
+        return True, '发送成功'
+    except Exception as e:
+        return False, f'发送失败: {str(e)}'
+
+# ============ 静态文件路由 ============
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
@@ -60,7 +152,7 @@ def index():
 def static_files(filename):
     return send_from_directory('static', filename)
 
-# 文件上传API
+# ============ 文件上传API ============
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     try:
@@ -71,458 +163,222 @@ def upload_file():
         if file.filename == '':
             return jsonify({'error': '未选择文件'}), 400
         
-        # 检查文件类型
         if not allowed_file(file.filename):
-            return jsonify({'error': f'不允许的文件类型，支持: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+            return jsonify({'error': f'不允许的文件类型'}), 400
         
-        # 处理文件名
-        filename = secure_filename(file.filename)
-        if not filename:
-            filename = f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}.exe"
-        
-        # 添加时间戳避免重名
+        filename = secure_filename(file.filename) or f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}.exe"
         name, ext = os.path.splitext(filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{name}_{timestamp}{ext}"
+        filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
         
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
-        # 保存文件
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
         
-        # 验证文件是否保存成功
-        if not os.path.exists(filepath):
-            return jsonify({'error': '文件保存失败'}), 500
-        
-        # 保存文件信息
         files_info = load_files_info()
-        file_info = {
+        files_info['files'].append({
             'filename': filename,
             'original_name': file.filename,
             'size': os.path.getsize(filepath),
             'upload_time': datetime.now().isoformat(),
             'path': filepath
-        }
-        files_info['files'].append(file_info)
-        
-        # 如果是第一个文件，自动设为当前版本
+        })
         if len(files_info['files']) == 1:
             files_info['current_version'] = filename
-        
         save_files_info(files_info)
         
-        print(f"文件上传成功: {filename} ({file_info['size']} bytes)")
-        
-        return jsonify({
-            'message': '文件上传成功',
-            'filename': filename,
-            'size': file_info['size']
-        }), 200
-        
+        return jsonify({'message': '上传成功', 'filename': filename}), 200
     except Exception as e:
-        print(f"上传错误: {str(e)}")
-        return jsonify({'error': f'上传失败: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
-# 删除文件API
 @app.route('/api/files/<filename>', methods=['DELETE'])
 def delete_file(filename):
-    try:
-        files_info = load_files_info()
-        
-        # 查找文件
-        file_to_delete = None
-        for f in files_info['files']:
-            if f['filename'] == filename:
-                file_to_delete = f
-                break
-        
-        if not file_to_delete:
-            return jsonify({'error': '文件不存在'}), 404
-        
-        # 删除实际文件
-        filepath = file_to_delete['path']
-        if os.path.exists(filepath):
-            os.remove(filepath)
-        
-        # 从列表中移除
-        files_info['files'] = [f for f in files_info['files'] if f['filename'] != filename]
-        
-        # 如果删除的是当前版本，重置当前版本
-        if files_info['current_version'] == filename:
-            files_info['current_version'] = files_info['files'][-1]['filename'] if files_info['files'] else None
-        
-        save_files_info(files_info)
-        
-        print(f"文件删除成功: {filename}")
-        
-        return jsonify({'message': '文件删除成功'}), 200
-        
-    except Exception as e:
-        print(f"删除错误: {str(e)}")
-        return jsonify({'error': f'删除失败: {str(e)}'}), 500
+    files_info = load_files_info()
+    file_to_delete = next((f for f in files_info['files'] if f['filename'] == filename), None)
+    
+    if not file_to_delete:
+        return jsonify({'error': '文件不存在'}), 404
+    
+    if os.path.exists(file_to_delete['path']):
+        os.remove(file_to_delete['path'])
+    
+    files_info['files'] = [f for f in files_info['files'] if f['filename'] != filename]
+    if files_info['current_version'] == filename:
+        files_info['current_version'] = files_info['files'][-1]['filename'] if files_info['files'] else None
+    save_files_info(files_info)
+    
+    return jsonify({'message': '删除成功'})
 
-# 设置当前版本API
 @app.route('/api/files/<filename>/set-current', methods=['POST'])
 def set_current_version(filename):
-    try:
-        files_info = load_files_info()
-        
-        # 查找文件
-        file_exists = any(f['filename'] == filename for f in files_info['files'])
-        
-        if not file_exists:
-            return jsonify({'error': '文件不存在'}), 404
-        
-        # 设置当前版本
-        files_info['current_version'] = filename
-        save_files_info(files_info)
-        
-        print(f"设置当前版本: {filename}")
-        
-        return jsonify({'message': '设置成功', 'current_version': filename}), 200
-        
-    except Exception as e:
-        print(f"设置错误: {str(e)}")
-        return jsonify({'error': f'设置失败: {str(e)}'}), 500
+    files_info = load_files_info()
+    if not any(f['filename'] == filename for f in files_info['files']):
+        return jsonify({'error': '文件不存在'}), 404
+    
+    files_info['current_version'] = filename
+    save_files_info(files_info)
+    return jsonify({'message': '设置成功'})
 
-# 获取文件列表
 @app.route('/api/files', methods=['GET'])
 def get_files():
-    files_info = load_files_info()
-    return jsonify(files_info), 200
+    return jsonify(load_files_info())
 
-# 下载文件
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
+    return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
-# 获取最新版本（当前版本）
 @app.route('/api/latest', methods=['GET'])
 def get_latest():
     files_info = load_files_info()
-    
-    # 优先返回当前版本
     if files_info['current_version']:
         for f in files_info['files']:
             if f['filename'] == files_info['current_version']:
-                return jsonify(f), 200
-    
-    # 如果没有当前版本，返回最后一个
+                return jsonify(f)
     if files_info['files']:
-        latest = files_info['files'][-1]
-        return jsonify(latest), 200
-    
+        return jsonify(files_info['files'][-1])
     return jsonify({'message': '暂无可用版本'}), 404
 
-# 管理页面
-@app.route('/admin')
-def admin():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>版本管理 - 绿豆蛙日报助手</title>
-        <meta charset="UTF-8">
-        <link rel="icon" href="/favicon.jpg" type="image/jpeg">
-        <style>
-            * { box-sizing: border-box; }
-            body { 
-                font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; 
-                max-width: 900px; 
-                margin: 0 auto; 
-                padding: 20px; 
-                background: #f0f9f0; 
-                color: #333;
-            }
-            h1 { 
-                color: #2e7d32; 
-                display: flex;
-                align-items: center;
-                gap: 15px;
-            }
-            h1 img {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                object-fit: cover;
-            }
-            .upload-form { 
-                background: white; 
-                padding: 25px; 
-                border-radius: 12px; 
-                margin: 20px 0; 
-                box-shadow: 0 2px 15px rgba(46, 125, 50, 0.1); 
-                border: 1px solid #c8e6c9;
-            }
-            .file-list { margin-top: 30px; }
-            .file-list h2 { color: #2e7d32; }
-            .file-item { 
-                background: white; 
-                padding: 20px; 
-                margin: 15px 0; 
-                border-radius: 10px; 
-                box-shadow: 0 2px 10px rgba(46, 125, 50, 0.1); 
-                border: 1px solid #c8e6c9;
-                transition: all 0.3s ease;
-            }
-            .file-item:hover {
-                box-shadow: 0 4px 20px rgba(46, 125, 50, 0.2);
-                transform: translateY(-2px);
-            }
-            .file-item.current {
-                border-left: 4px solid #4caf50;
-                background: #f1f8e9;
-            }
-            .file-info {
-                margin-bottom: 15px;
-            }
-            .file-info strong {
-                font-size: 16px;
-                color: #1b5e20;
-            }
-            .file-info small {
-                display: block;
-                margin-top: 5px;
-                color: #666;
-            }
-            .file-actions {
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-            }
-            button { 
-                background: #4caf50; 
-                color: white; 
-                border: none; 
-                padding: 10px 20px; 
-                border-radius: 6px; 
-                cursor: pointer; 
-                font-size: 14px;
-                transition: all 0.3s ease;
-            }
-            button:hover { 
-                background: #388e3c; 
-                transform: translateY(-1px);
-            }
-            button.danger { background: #ef5350; }
-            button.danger:hover { background: #c62828; }
-            button.secondary { background: #78909c; }
-            button.secondary:hover { background: #546e7a; }
-            button.success { background: #66bb6a; }
-            button:disabled {
-                background: #ccc;
-                cursor: not-allowed;
-                transform: none;
-            }
-            input[type="file"] { 
-                padding: 12px; 
-                margin-right: 10px; 
-                border: 2px dashed #a5d6a7;
-                border-radius: 8px;
-                background: #f1f8e9;
-                width: 100%;
-                margin-bottom: 15px;
-            }
-            .info-box { 
-                background: #e8f5e9; 
-                padding: 15px 20px; 
-                border-radius: 8px; 
-                margin: 15px 0; 
-                border-left: 4px solid #4caf50;
-            }
-            .error-box { 
-                background: #ffebee; 
-                color: #c62828; 
-                padding: 15px 20px; 
-                border-radius: 8px; 
-                margin: 15px 0; 
-                border-left: 4px solid #ef5350;
-            }
-            .success-box { 
-                background: #e8f5e9; 
-                color: #2e7d32; 
-                padding: 15px 20px; 
-                border-radius: 8px; 
-                margin: 15px 0; 
-                border-left: 4px solid #4caf50;
-            }
-            .badge {
-                display: inline-block;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: bold;
-                margin-left: 10px;
-            }
-            .badge-current {
-                background: #4caf50;
-                color: white;
-            }
-            .back-link {
-                display: inline-block;
-                margin-bottom: 20px;
-                color: #4caf50;
-                text-decoration: none;
-            }
-            .back-link:hover {
-                text-decoration: underline;
-            }
-        </style>
-    </head>
-    <body>
-        <a href="/" class="back-link">← 返回首页</a>
-        
-        <h1>
-            <img src="/favicon.jpg" alt="绿豆蛙">
-            版本管理
-        </h1>
-        
-        <div class="info-box">
-            <strong>提示：</strong>支持上传 .exe, .zip, .rar, .7z 格式的文件，最大 500MB。您可以删除旧版本并选择用户下载的版本。
-        </div>
-        
-        <div class="upload-form">
-            <h2>上传新版本</h2>
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="file" accept=".exe,.zip,.rar,.7z" required>
-                <button type="submit">上传新版本</button>
-            </form>
-            <div id="uploadResult"></div>
-        </div>
-        
-        <div class="file-list">
-            <h2>已上传版本</h2>
-            <div id="fileList"></div>
-        </div>
-
-        <script>
-            // 上传文件
-            document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const result = document.getElementById('uploadResult');
-                const fileInput = e.target.querySelector('input[type="file"]');
-                const file = fileInput.files[0];
-                
-                const allowedTypes = ['.exe', '.zip', '.rar', '.7z'];
-                const fileName = file.name.toLowerCase();
-                const isValidType = allowedTypes.some(type => fileName.endsWith(type));
-                
-                if (!isValidType) {
-                    result.innerHTML = '<div class="error-box">错误: 不支持的文件类型，请上传 .exe, .zip, .rar, .7z 格式的文件</div>';
-                    return;
-                }
-                
-                if (file.size > 500 * 1024 * 1024) {
-                    result.innerHTML = '<div class="error-box">错误: 文件太大，最大支持 500MB</div>';
-                    return;
-                }
-                
-                result.innerHTML = '<p>正在上传...</p>';
-                
-                try {
-                    const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-                    if (response.ok) {
-                        result.innerHTML = '<div class="success-box">上传成功: ' + data.filename + ' (' + (data.size / 1024 / 1024).toFixed(2) + ' MB)</div>';
-                        fileInput.value = '';
-                        loadFiles();
-                    } else {
-                        result.innerHTML = '<div class="error-box">错误: ' + data.error + '</div>';
-                    }
-                } catch (error) {
-                    result.innerHTML = '<div class="error-box">上传失败: ' + error.message + '</div>';
-                }
-            });
-
-            // 加载文件列表
-            async function loadFiles() {
-                const response = await fetch('/api/files');
-                const data = await response.json();
-                const fileList = document.getElementById('fileList');
-                
-                if (data.files && data.files.length > 0) {
-                    fileList.innerHTML = data.files.reverse().map(file => {
-                        const isCurrent = data.current_version === file.filename;
-                        return `
-                            <div class="file-item ${isCurrent ? 'current' : ''}">
-                                <div class="file-info">
-                                    <strong>${file.original_name}</strong>
-                                    ${isCurrent ? '<span class="badge badge-current">当前版本</span>' : ''}
-                                    <br>
-                                    <small>大小: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-                                    <small>上传时间: ${new Date(file.upload_time).toLocaleString()}</small>
-                                    <small>文件名: ${file.filename}</small>
-                                </div>
-                                <div class="file-actions">
-                                    <a href="/download/${file.filename}" download>
-                                        <button class="secondary">下载</button>
-                                    </a>
-                                    ${!isCurrent ? `<button class="success" onclick="setCurrentVersion('${file.filename}')">设为当前版本</button>` : ''}
-                                    <button class="danger" onclick="deleteFile('${file.filename}', '${file.original_name}')">删除</button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    fileList.innerHTML = '<p>暂无文件</p>';
-                }
-            }
-
-            // 删除文件
-            async function deleteFile(filename, originalName) {
-                if (!confirm(`确定要删除 "${originalName}" 吗？此操作不可撤销。`)) {
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`/api/files/${filename}`, {
-                        method: 'DELETE'
-                    });
-                    const data = await response.json();
-                    if (response.ok) {
-                        alert('删除成功');
-                        loadFiles();
-                    } else {
-                        alert('删除失败: ' + data.error);
-                    }
-                } catch (error) {
-                    alert('删除失败: ' + error.message);
-                }
-            }
-
-            // 设置当前版本
-            async function setCurrentVersion(filename) {
-                try {
-                    const response = await fetch(`/api/files/${filename}/set-current`, {
-                        method: 'POST'
-                    });
-                    const data = await response.json();
-                    if (response.ok) {
-                        alert('设置成功，用户将下载此版本');
-                        loadFiles();
-                    } else {
-                        alert('设置失败: ' + data.error);
-                    }
-                } catch (error) {
-                    alert('设置失败: ' + error.message);
-                }
-            }
-
-            loadFiles();
-        </script>
-    </body>
-    </html>
-    '''
-
-# 获取配置信息
 @app.route('/api/config', methods=['GET'])
 def get_config():
-    return jsonify(config), 200
+    safe_config = {k: v for k, v in config.items() if k != 'smtp'}
+    return jsonify(safe_config)
+
+# ============ 用户API ============
+@app.route('/api/send-code', methods=['POST'])
+def send_code():
+    email = request.json.get('email', '').strip()
+    if not email:
+        return jsonify({'success': False, 'message': '请输入邮箱地址'})
+    
+    code = generate_code()
+    verification_codes[email] = {
+        'code': code,
+        'expire': datetime.now() + timedelta(minutes=config.get('smtp', {}).get('code_expire', 5))
+    }
+    
+    html = f'<div style="font-family:Arial;max-width:500px;margin:0 auto;"><h2 style="color:#4caf50;">绿豆蛙日报助手</h2><p>您的验证码：</p><div style="background:#f5f5f5;padding:20px;text-align:center;font-size:32px;font-weight:bold;letter-spacing:5px;">{code}</div><p style="color:#666;">5分钟内有效</p></div>'
+    
+    success, message = send_email(email, '验证码', html)
+    return jsonify({'success': success, 'message': message if success else message})
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.json
+    email, password, code = data.get('email', '').strip(), data.get('password', '').strip(), data.get('code', '').strip()
+    
+    if not all([email, password, code]):
+        return jsonify({'success': False, 'message': '请填写完整信息'})
+    
+    if email not in verification_codes:
+        return jsonify({'success': False, 'message': '请先发送验证码'})
+    
+    stored = verification_codes[email]
+    if datetime.now() > stored['expire']:
+        del verification_codes[email]
+        return jsonify({'success': False, 'message': '验证码已过期'})
+    if stored['code'] != code:
+        return jsonify({'success': False, 'message': '验证码错误'})
+    
+    if find_user(email):
+        return jsonify({'success': False, 'message': '该邮箱已注册'})
+    
+    add_user(email, password)
+    del verification_codes[email]
+    return jsonify({'success': True, 'message': '注册成功'})
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    email, password = request.json.get('email', '').strip(), request.json.get('password', '').strip()
+    
+    if not email or not password:
+        return jsonify({'success': False, 'message': '请填写邮箱和密码'})
+    
+    user = find_user(email)
+    if not user:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    if user['密码'] != password:
+        return jsonify({'success': False, 'message': '密码错误'})
+    if user['状态'] != '正常':
+        return jsonify({'success': False, 'message': '账号已被禁用'})
+    
+    update_user(email, {'最近登录时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    return jsonify({'success': True, 'message': '登录成功'})
+
+# ============ 管理员API ============
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    if request.json.get('username') == ADMIN_USERNAME and request.json.get('password') == ADMIN_PASSWORD:
+        session['admin_logged_in'] = True
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'message': '用户名或密码错误'})
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    return jsonify({'success': True})
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_get_users():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    return jsonify({'success': True, 'users': read_users()})
+
+@app.route('/api/admin/users/<email>', methods=['DELETE'])
+def admin_delete_user(email):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    delete_user(email)
+    return jsonify({'success': True})
+
+@app.route('/api/admin/users/<email>/status', methods=['POST'])
+def admin_update_status(email):
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    status = request.json.get('status')
+    if status in ['正常', '禁用']:
+        update_user(email, {'状态': status})
+    return jsonify({'success': True})
+
+@app.route('/api/admin/config', methods=['GET'])
+def admin_get_config():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    smtp = config.get('smtp', {}).copy()
+    if smtp.get('password'):
+        smtp['password'] = '********'
+    return jsonify({'success': True, 'config': smtp})
+
+@app.route('/api/admin/config', methods=['POST'])
+def admin_update_config():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    data = request.json
+    if 'smtp' not in config:
+        config['smtp'] = {}
+    
+    for key in ['server', 'port', 'email', 'password', 'code_expire']:
+        if key in data:
+            if key == 'password' and data[key] == '********':
+                continue
+            config['smtp'][key] = int(data[key]) if key in ['port', 'code_expire'] else data[key]
+    
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    
+    return jsonify({'success': True, 'message': '配置已保存'})
+
+@app.route('/api/admin/test-email', methods=['POST'])
+def admin_test_email():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    email = request.json.get('email', '').strip()
+    if not email:
+        return jsonify({'success': False, 'message': '请输入测试邮箱'})
+    
+    html = '<div style="font-family:Arial;"><h2 style="color:#4caf50;">测试邮件</h2><p>SMTP配置正常！</p></div>'
+    success, message = send_email(email, 'SMTP测试', html)
+    return jsonify({'success': success, 'message': message})
 
 if __name__ == '__main__':
-    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    app.run(host=config['server']['host'], port=config['server']['port'], debug=debug)
+    init_csv()
+    app.run(host='0.0.0.0', port=5000, debug=True)

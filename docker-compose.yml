@@ -3,7 +3,7 @@ services:
     build: .
     container_name: ai-work-diary-web
     ports:
-      - "3333:5000"
+      - "80:5000"
     volumes:
       - ./uploads:/app/uploads
       - ./files_info.json:/app/files_info.json
