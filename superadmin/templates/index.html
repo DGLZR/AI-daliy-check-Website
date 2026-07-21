@@ -48,6 +48,28 @@
         .message { padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none; }
         .message.success { background: #e8f5e9; color: #2e7d32; display: block; }
         .message.error { background: #ffebee; color: #c62828; display: block; }
+        
+        /* 密码输入框容器 */
+        .password-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .password-container input {
+            padding-right: 45px;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            cursor: pointer;
+            color: #666;
+            font-size: 18px;
+            user-select: none;
+            transition: color 0.3s;
+        }
+        .toggle-password:hover {
+            color: #4caf50;
+        }
     </style>
 </head>
 <body>
@@ -91,7 +113,13 @@
                     <div class="form-group"><label>SMTP服务器</label><input type="text" id="smtpServer"></div>
                     <div class="form-group"><label>端口</label><input type="number" id="smtpPort"></div>
                     <div class="form-group"><label>发件邮箱</label><input type="email" id="smtpEmail"></div>
-                    <div class="form-group"><label>邮箱密码/授权码</label><input type="password" id="smtpPassword"></div>
+                    <div class="form-group">
+                        <label>邮箱密码/授权码</label>
+                        <div class="password-container">
+                            <input type="password" id="smtpPassword" placeholder="请输入邮箱密码或授权码">
+                            <span class="toggle-password" onclick="togglePassword('smtpPassword', this)">&#128065;</span>
+                        </div>
+                    </div>
                     <div class="form-group"><label>验证码有效期（分钟）</label><input type="number" id="codeExpire"></div>
                     <button class="btn btn-success" onclick="saveSMTPConfig()">保存配置</button>
                 </div>
@@ -106,6 +134,20 @@
     </div>
     
     <script>
+        // 切换密码显示/隐藏
+        function togglePassword(inputId, icon) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerHTML = '&#128064;';  // 睁眼
+                icon.style.color = '#4caf50';
+            } else {
+                input.type = 'password';
+                icon.innerHTML = '&#128065;';  // 闭眼
+                icon.style.color = '#666';
+            }
+        }
+        
         async function adminLogin() {
             const res = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:document.getElementById('loginUsername').value, password:document.getElementById('loginPassword').value})});
             const data = await res.json();
