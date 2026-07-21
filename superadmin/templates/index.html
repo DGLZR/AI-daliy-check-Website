@@ -36,6 +36,8 @@
         .btn-danger { background: #ef5350; color: white; }
         .btn-info { background: #2196f3; color: white; }
         .btn-warning { background: #ff9800; color: white; }
+        .email-link { color: #2196f3; text-decoration: none; font-weight: 600; }
+        .email-link:hover { text-decoration: underline; color: #1565c0; }
         .status-normal { color: #4caf50; font-weight: bold; }
         .status-disabled { color: #ef5350; font-weight: bold; }
         .form-group { margin-bottom: 16px; }
@@ -164,7 +166,7 @@
                 document.getElementById('totalUsers').textContent = users.length;
                 document.getElementById('activeUsers').textContent = users.filter(u=>u['状态']==='正常').length;
                 document.getElementById('disabledUsers').textContent = users.filter(u=>u['状态']==='禁用').length;
-                document.getElementById('usersTableBody').innerHTML = users.map(u=>`<tr><td>${u['邮箱']}</td><td>${u['注册时间']}</td><td>${u['最近登录时间']||'从未登录'}</td><td class="${u['状态']==='正常'?'status-normal':'status-disabled'}">${u['状态']}</td><td><button class="btn ${u['状态']==='正常'?'btn-warning':'btn-success'}" onclick="toggleStatus('${u['邮箱']}','${u['状态']==='正常'?'禁用':'正常'}')">${u['状态']==='正常'?'禁用':'启用'}</button> <button class="btn btn-danger" onclick="deleteUser('${u['邮箱']}')">删除</button></td></tr>`).join('');
+                document.getElementById('usersTableBody').innerHTML = users.map(u=>`<tr><td><a href="/superadmin/user/${encodeURIComponent(u['邮箱'])}" class="email-link">${u['邮箱']}</a></td><td>${u['注册时间']}</td><td>${u['最近登录时间']||'从未登录'}</td><td class="${u['状态']==='正常'?'status-normal':'status-disabled'}">${u['状态']}</td><td><button class="btn ${u['状态']==='正常'?'btn-warning':'btn-success'}" onclick="toggleStatus('${u['邮箱']}','${u['状态']==='正常'?'禁用':'正常'}')">${u['状态']==='正常'?'禁用':'启用'}</button> <button class="btn btn-danger" onclick="deleteUser('${u['邮箱']}')">删除</button></td></tr>`).join('');
             }
         }
         async function toggleStatus(email, status) { await fetch(`/api/admin/users/${email}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status})}); loadUsers(); }

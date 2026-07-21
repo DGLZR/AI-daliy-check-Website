@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户详情 - {{ user['邮箱'] }}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f9f0; }
+        .header { background: white; padding: 20px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { color: #2e7d32; font-size: 20px; }
+        .header .back-btn { padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; }
+        .header .back-btn:hover { background: #388e3c; }
+        .main { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        .user-profile { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .user-profile h2 { color: #2e7d32; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        .user-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4caf50, #81c784); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .info-item { background: #f5f5f5; padding: 15px 20px; border-radius: 10px; }
+        .info-item .label { color: #666; font-size: 14px; margin-bottom: 5px; }
+        .info-item .value { color: #333; font-size: 16px; font-weight: 600; }
+        
+        .stats-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .stats-section h2 { color: #2e7d32; margin-bottom: 20px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-card { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 20px; border-radius: 12px; text-align: center; }
+        .stat-card .number { font-size: 36px; font-weight: bold; color: #2e7d32; }
+        .stat-card .unit { font-size: 14px; color: #666; }
+        .stat-card .label { color: #555; margin-top: 8px; font-size: 14px; }
+        
+        .type-breakdown { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .type-breakdown h2 { color: #2e7d32; margin-bottom: 20px; }
+        
+        .type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .type-item { background: #f9f9f9; padding: 15px; border-radius: 10px; text-align: center; border-left: 4px solid #4caf50; }
+        .type-item .type-name { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .type-item .type-value { font-size: 20px; font-weight: bold; color: #333; }
+        
+        .report-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-top: 30px; }
+        .report-section h2 { color: #2e7d32; margin-bottom: 20px; }
+        .report-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .report-card { background: linear-gradient(135deg, #fff3e0, #ffe0b2); padding: 20px; border-radius: 12px; text-align: center; }
+        .report-card .number { font-size: 36px; font-weight: bold; color: #e65100; }
+        .report-card .label { color: #666; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>用户详情</h1>
+        <a href="/superadmin" class="back-btn">返回管理后台</a>
+    </div>
+    
+    <div class="main">
+        <div class="user-profile">
+            <h2>
+                <div class="user-avatar">{{ user['邮箱'][0].upper() }}</div>
+                {{ user['邮箱'] }}
+            </h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">邮箱</div>
+                    <div class="value">{{ user['邮箱'] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">昵称</div>
+                    <div class="value">{{ detail.get('昵称', user['邮箱'].split('@')[0]) }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">密码</div>
+                    <div class="value">{{ user['密码'] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">注册时间</div>
+                    <div class="value">{{ user['注册时间'] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">最近登录时间</div>
+                    <div class="value">{{ user.get('最近登录时间', '从未登录') }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">账号状态</div>
+                    <div class="value" style="color: {{ '#4caf50' if user['状态'] == '正常' else '#ef5350' }}">{{ user['状态'] }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <h2>今日专注统计</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number">{{ detail.get('今日专注时长(分钟)', '0') }}</div>
+                    <div class="unit">分钟</div>
+                    <div class="label">今日专注时长</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ detail.get('今日生成报告数量', '0') }}</div>
+                    <div class="unit">条</div>
+                    <div class="label">今日生成报告</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ detail.get('总共生成报告数量', '0') }}</div>
+                    <div class="unit">条</div>
+                    <div class="label">总共生成报告</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="type-breakdown">
+            <h2>今日各类型专注时长（分钟）</h2>
+            <div class="type-grid">
+                {% for type in work_types %}
+                <div class="type-item">
+                    <div class="type-name">{{ type }}</div>
+                    <div class="type-value">{{ detail.get('今日' + type + '时长(分钟)', '0') }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h2>报告统计</h2>
+            <div class="report-grid">
+                <div class="report-card">
+                    <div class="number">{{ detail.get('今日生成报告数量', '0') }}</div>
+                    <div class="label">今日生成报告数量</div>
+                </div>
+                <div class="report-card">
+                    <div class="number">{{ detail.get('总共生成报告数量', '0') }}</div>
+                    <div class="label">总共生成报告数量</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

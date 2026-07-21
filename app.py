@@ -20,6 +20,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(BASE_DIR, 'config.json')
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 USERS_CSV = os.path.join(DATA_DIR, 'users.csv')
+DETAIL_CSV = os.path.join(DATA_DIR, 'detail_person_data.csv')
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 FILES_INFO_PATH = os.path.join(BASE_DIR, 'files_info.json')
 
@@ -29,6 +30,9 @@ ADMIN_PASSWORD = 'Ab130108'
 
 # 验证码存储
 verification_codes = {}
+
+# 工作类型列表
+WORK_TYPES = ['开发', '沟通', '生活', '学习', '设计', '管理', '文档', '娱乐', '产品', '会议', '运维', '测试', '数据分析', '其他']
 
 # 确保目录存在
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -52,6 +56,17 @@ def init_csv():
     if not os.path.exists(USERS_CSV):
         with open(USERS_CSV, 'w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(['邮箱', '密码', '注册时间', '状态', '最近登录时间'])
+    
+    if not os.path.exists(DETAIL_CSV):
+        with open(DETAIL_CSV, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['邮箱', '昵称', '密码', '最近登录时间', '今日专注时长(分钟)',
+                           '今日开发时长(分钟)', '今日沟通时长(分钟)', '今日生活时长(分钟)',
+                           '今日学习时长(分钟)', '今日设计时长(分钟)', '今日管理时长(分钟)',
+                           '今日文档时长(分钟)', '今日娱乐时长(分钟)', '今日产品时长(分钟)',
+                           '今日会议时长(分钟)', '今日运维时长(分钟)', '今日测试时长(分钟)',
+                           '今日数据分析时长(分钟)', '今日其他时长(分钟)',
+                           '今日生成报告数量', '总共生成报告数量'])
 
 def read_users():
     init_csv()
@@ -76,6 +91,94 @@ def find_user(email):
             return user
     return None
 
+def create_user_folder(email):
+    """创建用户文件夹和初始化CSV文件"""
+    # 邮箱中的特殊字符替换为下划线作为文件夹名
+    folder_name = email.replace('@', '_at_').replace('.', '_')
+    user_folder = os.path.join(DATA_DIR, 'users', folder_name)
+    os.makedirs(user_folder, exist_ok=True)
+    
+    # 创建records.csv
+    records_file = os.path.join(user_folder, 'records.csv')
+    if not os.path.exists(records_file):
+        with open(records_file, 'w', newline='', encoding='utf-8') as f:
+            csv.writer(f).writerow(['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)'])
+    
+    # 创建daily_summary.csv
+    summary_file = os.path.join(user_folder, 'daily_summary.csv')
+    if not os.path.exists(summary_file):
+        with open(summary_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            header = ['日期', '记录条数', '使用时长(小时)', '主要工作', '最早使用时间', '最晚使用时间']
+            for wt in WORK_TYPES:
+                header.append(f'{wt}时长(小时)')
+            for i in range(24):
+                header.append(f'{i:02d}:00记录数')
+            writer.writerow(header)
+    
+    # 初始化detail_person_data.csv中的用户数据
+    init_user_detail(email)
+    
+    return user_folder
+
+def init_user_detail(email):
+    """初始化用户详细数据"""
+    users = read_users()
+    user = next((u for u in users if u['邮箱'] == email), None)
+    if not user:
+        return
+    
+    # 检查是否已存在
+    detail_data = read_detail_data()
+    if any(d['邮箱'] == email for d in detail_data):
+        return
+    
+    # 添加新用户
+    new_detail = {
+        '邮箱': email,
+        '昵称': email.split('@')[0],
+        '密码': user['密码'],
+        '最近登录时间': '',
+        '今日专注时长(分钟)': 0,
+        '今日开发时长(分钟)': 0,
+        '今日沟通时长(分钟)': 0,
+        '今日生活时长(分钟)': 0,
+        '今日学习时长(分钟)': 0,
+        '今日设计时长(分钟)': 0,
+        '今日管理时长(分钟)': 0,
+        '今日文档时长(分钟)': 0,
+        '今日娱乐时长(分钟)': 0,
+        '今日产品时长(分钟)': 0,
+        '今日会议时长(分钟)': 0,
+        '今日运维时长(分钟)': 0,
+        '今日测试时长(分钟)': 0,
+        '今日数据分析时长(分钟)': 0,
+        '今日其他时长(分钟)': 0,
+        '今日生成报告数量': 0,
+        '总共生成报告数量': 0
+    }
+    detail_data.append(new_detail)
+    write_detail_data(detail_data)
+
+def read_detail_data():
+    """读取用户详细数据"""
+    init_csv()
+    data = []
+    if os.path.exists(DETAIL_CSV):
+        with open(DETAIL_CSV, 'r', encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                data.append(row)
+    return data
+
+def write_detail_data(data):
+    """写入用户详细数据"""
+    if not data:
+        return
+    with open(DETAIL_CSV, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+
 def add_user(email, password):
     users = read_users()
     users.append({
@@ -86,6 +189,8 @@ def add_user(email, password):
         '最近登录时间': ''
     })
     write_users(users)
+    # 创建用户文件夹
+    create_user_folder(email)
 
 def update_user(email, updates):
     users = read_users()
@@ -93,9 +198,88 @@ def update_user(email, updates):
         if user['邮箱'] == email:
             user.update(updates)
     write_users(users)
+    
+    # 同步更新detail_person_data.csv
+    if '最近登录时间' in updates:
+        detail_data = read_detail_data()
+        for d in detail_data:
+            if d['邮箱'] == email:
+                d['最近登录时间'] = updates['最近登录时间']
+        write_detail_data(detail_data)
 
 def delete_user(email):
     write_users([u for u in read_users() if u['邮箱'] != email])
+    # 也从detail_person_data.csv中删除
+    detail_data = read_detail_data()
+    detail_data = [d for d in detail_data if d['邮箱'] != email]
+    write_detail_data(detail_data)
+
+# ============ 用户数据计算 ============
+def get_user_folder(email):
+    """获取用户文件夹路径"""
+    folder_name = email.replace('@', '_at_').replace('.', '_')
+    return os.path.join(DATA_DIR, 'users', folder_name)
+
+def calculate_user_stats(email):
+    """计算用户统计数据"""
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    summary_file = os.path.join(user_folder, 'daily_summary.csv')
+    
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    stats = {
+        'today_focus_minutes': 0,
+        'today_type_minutes': {wt: 0 for wt in WORK_TYPES},
+        'today_reports': 0,
+        'total_reports': 0
+    }
+    
+    # 读取records.csv计算今日数据
+    if os.path.exists(records_file):
+        with open(records_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if row['日期'] == today:
+                    try:
+                        duration = float(row['持续时长(分钟)'])
+                        work_type = row['工作类型']
+                        stats['today_focus_minutes'] += duration
+                        if work_type in stats['today_type_minutes']:
+                            stats['today_type_minutes'][work_type] += duration
+                    except (ValueError, KeyError):
+                        pass
+    
+    # 读取daily_summary.csv计算报告数量
+    if os.path.exists(summary_file):
+        with open(summary_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    stats['total_reports'] += int(row.get('记录条数', 0))
+                    if row['日期'] == today:
+                        stats['today_reports'] = int(row.get('记录条数', 0))
+                except (ValueError, KeyError):
+                    pass
+    
+    return stats
+
+def update_detail_data_on_login(email):
+    """登录时更新用户详细数据"""
+    stats = calculate_user_stats(email)
+    detail_data = read_detail_data()
+    
+    for d in detail_data:
+        if d['邮箱'] == email:
+            d['最近登录时间'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            d['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
+            for wt in WORK_TYPES:
+                d[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
+            d['今日生成报告数量'] = stats['today_reports']
+            d['总共生成报告数量'] = stats['total_reports']
+            break
+    
+    write_detail_data(detail_data)
 
 # ============ 文件管理 ============
 def load_files_info():
@@ -300,7 +484,133 @@ def login():
         return jsonify({'success': False, 'message': '账号已被禁用'})
     
     update_user(email, {'最近登录时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    # 更新详细数据
+    update_detail_data_on_login(email)
+    
     return jsonify({'success': True, 'message': '登录成功'})
+
+# ============ 用户数据接收接口 ============
+@app.route('/api/user/record', methods=['POST'])
+def add_user_record():
+    """添加用户记录"""
+    data = request.json
+    email = data.get('email', '').strip()
+    
+    if not email:
+        return jsonify({'success': False, 'message': '缺少邮箱参数'})
+    
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    
+    if not os.path.exists(records_file):
+        return jsonify({'success': False, 'message': '用户数据不存在'})
+    
+    # 读取现有记录获取最大ID
+    max_id = 0
+    with open(records_file, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                max_id = max(max_id, int(row['ID']))
+            except ValueError:
+                pass
+    
+    # 添加新记录
+    new_record = {
+        'ID': max_id + 1,
+        '日期': data.get('date', datetime.now().strftime('%Y-%m-%d')),
+        '时间': data.get('time', datetime.now().strftime('%H:%M:%S')),
+        '工作类型': data.get('work_type', '其他'),
+        '工作描述': data.get('description', ''),
+        '持续时长(分钟)': data.get('duration', 0)
+    }
+    
+    with open(records_file, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)'])
+        writer.writerow(new_record)
+    
+    return jsonify({'success': True, 'message': '记录添加成功', 'id': new_record['ID']})
+
+@app.route('/api/user/daily-summary', methods=['POST'])
+def update_user_daily_summary():
+    """更新用户每日汇总（同一天刷新）"""
+    data = request.json
+    email = data.get('email', '').strip()
+    
+    if not email:
+        return jsonify({'success': False, 'message': '缺少邮箱参数'})
+    
+    user_folder = get_user_folder(email)
+    summary_file = os.path.join(user_folder, 'daily_summary.csv')
+    
+    if not os.path.exists(summary_file):
+        return jsonify({'success': False, 'message': '用户数据不存在'})
+    
+    date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+    
+    # 读取现有数据
+    summaries = []
+    if os.path.exists(summary_file):
+        with open(summary_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            summaries = list(reader)
+    
+    # 查找是否已存在该日期的数据
+    existing_index = None
+    for i, s in enumerate(summaries):
+        if s['日期'] == date:
+            existing_index = i
+            break
+    
+    # 构建新数据
+    new_summary = {
+        '日期': date,
+        '记录条数': data.get('record_count', 0),
+        '使用时长(小时)': data.get('usage_hours', 0),
+        '主要工作': data.get('main_work', ''),
+        '最早使用时间': data.get('earliest_time', ''),
+        '最晚使用时间': data.get('latest_time', '')
+    }
+    
+    # 添加各工作类型时长
+    for wt in WORK_TYPES:
+        new_summary[f'{wt}时长(小时)'] = data.get(f'{wt}_hours', 0)
+    
+    # 添加每小时记录数
+    for i in range(24):
+        new_summary[f'{i:02d}:00记录数'] = data.get(f'hour_{i:02d}', 0)
+    
+    # 更新或添加
+    if existing_index is not None:
+        summaries[existing_index] = new_summary
+    else:
+        summaries.append(new_summary)
+    
+    # 写入文件
+    if summaries:
+        with open(summary_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=summaries[0].keys())
+            writer.writeheader()
+            writer.writerows(summaries)
+    
+    return jsonify({'success': True, 'message': '每日汇总更新成功'})
+
+@app.route('/api/user/stats/<email>', methods=['GET'])
+def get_user_stats(email):
+    """获取用户统计数据"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    stats = calculate_user_stats(email)
+    return jsonify({
+        'success': True,
+        'stats': {
+            'today_focus_minutes': round(stats['today_focus_minutes'], 1),
+            'today_type_minutes': {k: round(v, 1) for k, v in stats['today_type_minutes'].items()},
+            'today_reports': stats['today_reports'],
+            'total_reports': stats['total_reports']
+        }
+    })
 
 # ============ 管理员API ============
 @app.route('/api/admin/login', methods=['POST'])
@@ -378,6 +688,28 @@ def admin_test_email():
     html = '<div style="font-family:Arial;"><h2 style="color:#4caf50;">测试邮件</h2><p>SMTP配置正常！</p></div>'
     success, message = send_email(email, 'SMTP测试', html)
     return jsonify({'success': success, 'message': message})
+
+@app.route('/api/admin/user-detail/<email>', methods=['GET'])
+def admin_get_user_detail(email):
+    """获取用户详细信息"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    detail_data = read_detail_data()
+    user_detail = next((d for d in detail_data if d['邮箱'] == email), None)
+    
+    if not user_detail:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    # 更新统计数据
+    stats = calculate_user_stats(email)
+    user_detail['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
+    for wt in WORK_TYPES:
+        user_detail[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
+    user_detail['今日生成报告数量'] = stats['today_reports']
+    user_detail['总共生成报告数量'] = stats['total_reports']
+    
+    return jsonify({'success': True, 'user': user_detail})
 
 if __name__ == '__main__':
     init_csv()
