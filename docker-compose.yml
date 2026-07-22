@@ -6,7 +6,9 @@ services:
       - "80:5000"
     volumes:
       - ./uploads:/app/uploads
+      - ./data:/app/data
       - ./files_info.json:/app/files_info.json
+      - ./config.json:/app/config.json
     environment:
       - FLASK_ENV=production
     restart: unless-stopped

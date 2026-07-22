@@ -483,6 +483,11 @@ def login():
     if user['状态'] != '正常':
         return jsonify({'success': False, 'message': '账号已被禁用'})
     
+    # 确保用户文件夹存在
+    user_folder = get_user_folder(email)
+    if not os.path.exists(user_folder):
+        create_user_folder(email)
+    
     update_user(email, {'最近登录时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
     # 更新详细数据
     update_detail_data_on_login(email)
