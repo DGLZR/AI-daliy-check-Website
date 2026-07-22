@@ -33,6 +33,16 @@
         .info-item .label { color: #666; font-size: 14px; margin-bottom: 5px; }
         .info-item .value { color: #333; font-size: 16px; font-weight: 600; }
         
+        /* 存储空间进度条 */
+        .storage-item { background: #f5f5f5; padding: 15px 20px; border-radius: 10px; }
+        .storage-item .label { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .storage-bar { background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden; position: relative; }
+        .storage-bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+        .storage-bar-fill.safe { background: linear-gradient(90deg, #4caf50, #81c784); }
+        .storage-bar-fill.warning { background: linear-gradient(90deg, #ff9800, #ffb74d); }
+        .storage-bar-fill.danger { background: linear-gradient(90deg, #f44336, #ef5350); }
+        .storage-text { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #666; }
+        
         .stats-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
         .stats-section h2 { color: #2e7d32; margin-bottom: 20px; }
         
@@ -188,6 +198,26 @@
                 <div class="info-item">
                     <div class="label">最近登录时间</div>
                     <div class="value">{{ user.get('最近登录时间', '从未登录') }}</div>
+                </div>
+                <div class="storage-item">
+                    <div class="label">截图记录存储空间</div>
+                    <div class="storage-bar">
+                        <div class="storage-bar-fill safe" id="recordsStorageBarFill" style="width: 0%"></div>
+                    </div>
+                    <div class="storage-text">
+                        <span id="recordsStorageUsed">加载中...</span>
+                        <span>/ 1 MB</span>
+                    </div>
+                </div>
+                <div class="storage-item">
+                    <div class="label">报告存储空间</div>
+                    <div class="storage-bar">
+                        <div class="storage-bar-fill safe" id="reportStorageBarFill" style="width: 0%"></div>
+                    </div>
+                    <div class="storage-text">
+                        <span id="reportStorageUsed">加载中...</span>
+                        <span>/ 1 MB</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -485,9 +515,54 @@
         function closeModal() { document.getElementById('reportModal').classList.remove('active'); }
         document.getElementById('reportModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
         
+        // 获取存储空间信息
+        async function loadStorageInfo() {
+            try {
+                const response = await fetch(`/api/user/storage/${encodeURIComponent(email)}`);
+                const data = await response.json();
+                if (data.success) {
+                    // 更新截图记录存储空间
+                    const recordsStorage = data.records_storage;
+                    const recordsBarFill = document.getElementById('recordsStorageBarFill');
+                    const recordsStorageUsed = document.getElementById('recordsStorageUsed');
+                    
+                    recordsBarFill.style.width = `${recordsStorage.percentage}%`;
+                    recordsStorageUsed.textContent = `已使用: ${recordsStorage.current_mb} MB`;
+                    
+                    recordsBarFill.className = 'storage-bar-fill';
+                    if (recordsStorage.percentage < 60) {
+                        recordsBarFill.classList.add('safe');
+                    } else if (recordsStorage.percentage < 80) {
+                        recordsBarFill.classList.add('warning');
+                    } else {
+                        recordsBarFill.classList.add('danger');
+                    }
+                    
+                    // 更新报告存储空间
+                    const reportStorage = data.report_storage;
+                    const reportBarFill = document.getElementById('reportStorageBarFill');
+                    const reportStorageUsed = document.getElementById('reportStorageUsed');
+                    
+                    reportBarFill.style.width = `${reportStorage.percentage}%`;
+                    reportStorageUsed.textContent = `已使用: ${reportStorage.current_mb} MB`;
+                    
+                    reportBarFill.className = 'storage-bar-fill';
+                    if (reportStorage.percentage < 60) {
+                        reportBarFill.classList.add('safe');
+                    } else if (reportStorage.percentage < 80) {
+                        reportBarFill.classList.add('warning');
+                    } else {
+                        reportBarFill.classList.add('danger');
+                    }
+                }
+            } catch (error) {
+                console.log('获取存储信息失败:', error);
+            }
+        }
+        
         async function refreshData() {
             const btn = document.getElementById('refreshBtn'); btn.textContent = '刷新中...';
-            await loadData(); await loadReports();
+            await loadData(); await loadReports(); await loadStorageInfo();
             const response = await fetch(`/api/user/stats/${encodeURIComponent(email)}`);
             const data = await response.json();
             if (data.success) {
@@ -501,7 +576,7 @@
             fetch('/api/logout', { method: 'POST' }).then(() => { window.location.href = '/'; });
         }
         
-        initDates(); loadData(); loadReports();
+        initDates(); loadData(); loadReports(); loadStorageInfo();
     </script>
 </body>
 </html>

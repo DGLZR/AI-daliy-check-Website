@@ -222,6 +222,112 @@ def get_user_folder(email):
     folder_name = email.replace('@', '_at_').replace('.', '_')
     return os.path.join(DATA_DIR, 'users', folder_name)
 
+def cleanup_records_file(records_file, max_size_bytes=1*1024*1024):
+    """清理records.csv文件，确保不超过指定大小"""
+    if not os.path.exists(records_file):
+        return
+    
+    # 检查文件大小
+    file_size = os.path.getsize(records_file)
+    if file_size <= max_size_bytes:
+        return
+    
+    print(f"records.csv文件大小 ({file_size} bytes) 超过限制 ({max_size_bytes} bytes)，开始清理...")
+    
+    # 读取所有记录
+    records = []
+    with open(records_file, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        records = list(reader)
+    
+    # 按日期和时间排序（从新到旧）
+    records.sort(key=lambda x: (x.get('日期', ''), x.get('时间', '')), reverse=True)
+    
+    # 逐步删除最旧的记录，直到文件大小小于限制
+    while len(records) > 0:
+        # 先写入测试看看大小
+        temp_content = 'ID,日期,时间,工作类型,工作描述,持续时长(分钟)\n'
+        for record in records:
+            temp_content += f"{record['ID']},{record['日期']},{record['时间']},{record['工作类型']},{record['工作描述']},{record['持续时长(分钟)']}\n"
+        
+        if len(temp_content.encode('utf-8')) <= max_size_bytes:
+            break
+        
+        # 删除最旧的一条记录
+        records.pop()
+    
+    # 重新写入文件
+    with open(records_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)'])
+        writer.writeheader()
+        writer.writerows(records)
+    
+    print(f"清理完成，剩余 {len(records)} 条记录")
+
+def get_records_file_size(email):
+    """获取用户records.csv文件大小"""
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    
+    if os.path.exists(records_file):
+        return os.path.getsize(records_file)
+    return 0
+
+def get_report_folder_size(email):
+    """获取用户report文件夹总大小"""
+    user_folder = get_user_folder(email)
+    report_folder = os.path.join(user_folder, 'report')
+    
+    total_size = 0
+    if os.path.exists(report_folder):
+        for filename in os.listdir(report_folder):
+            filepath = os.path.join(report_folder, filename)
+            if os.path.isfile(filepath):
+                total_size += os.path.getsize(filepath)
+    return total_size
+
+def cleanup_report_folder(email, max_size_bytes=1*1024*1024):
+    """清理report文件夹，确保不超过指定大小"""
+    user_folder = get_user_folder(email)
+    report_folder = os.path.join(user_folder, 'report')
+    
+    if not os.path.exists(report_folder):
+        return
+    
+    # 获取所有报告文件及其信息
+    files_info = []
+    for filename in os.listdir(report_folder):
+        filepath = os.path.join(report_folder, filename)
+        if os.path.isfile(filepath):
+            files_info.append({
+                'filename': filename,
+                'filepath': filepath,
+                'size': os.path.getsize(filepath),
+                'mtime': os.path.getmtime(filepath)
+            })
+    
+    # 计算总大小
+    total_size = sum(f['size'] for f in files_info)
+    
+    if total_size <= max_size_bytes:
+        return
+    
+    print(f"report文件夹大小 ({total_size} bytes) 超过限制 ({max_size_bytes} bytes)，开始清理...")
+    
+    # 按修改时间排序（从旧到新）
+    files_info.sort(key=lambda x: x['mtime'])
+    
+    # 逐步删除最旧的文件，直到总大小小于限制
+    for file_info in files_info:
+        if total_size <= max_size_bytes:
+            break
+        
+        os.remove(file_info['filepath'])
+        total_size -= file_info['size']
+        print(f"删除报告: {file_info['filename']}")
+    
+    print(f"清理完成，剩余大小: {total_size} bytes")
+
 def calculate_user_stats(email):
     """计算用户统计数据"""
     user_folder = get_user_folder(email)
@@ -574,6 +680,40 @@ def get_user_stats_api(email):
         }
     })
 
+@app.route('/api/user/storage/<email>', methods=['GET'])
+def get_user_storage(email):
+    """获取用户存储空间使用情况"""
+    if session.get('logged_user') != email:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+    
+    # 截图记录存储
+    records_size = get_records_file_size(email)
+    records_max = 1 * 1024 * 1024  # 1MB
+    records_percentage = (records_size / records_max * 100) if records_max > 0 else 0
+    
+    # 报告存储
+    report_size = get_report_folder_size(email)
+    report_max = 1 * 1024 * 1024  # 1MB
+    report_percentage = (report_size / report_max * 100) if report_max > 0 else 0
+    
+    return jsonify({
+        'success': True,
+        'records_storage': {
+            'current_bytes': records_size,
+            'max_bytes': records_max,
+            'current_mb': round(records_size / 1024 / 1024, 2),
+            'max_mb': 1,
+            'percentage': round(records_percentage, 1)
+        },
+        'report_storage': {
+            'current_bytes': report_size,
+            'max_bytes': report_max,
+            'current_mb': round(report_size / 1024 / 1024, 2),
+            'max_mb': 1,
+            'percentage': round(report_percentage, 1)
+        }
+    })
+
 # ============ 用户数据接收接口 ============
 @app.route('/api/user/record', methods=['POST'])
 def add_user_record():
@@ -594,6 +734,9 @@ def add_user_record():
         create_user_folder(email)
     
     records_file = os.path.join(user_folder, 'records.csv')
+    
+    # 清理文件，确保不超过1MB
+    cleanup_records_file(records_file)
     
     # 读取现有记录获取最大ID
     max_id = 0
@@ -784,6 +927,9 @@ def upload_report():
     # 创建report文件夹
     report_folder = os.path.join(user_folder, 'report')
     os.makedirs(report_folder, exist_ok=True)
+    
+    # 清理report文件夹，确保不超过1MB
+    cleanup_report_folder(email)
     
     # 生成文件名
     now = datetime.now()
