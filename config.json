@@ -12,7 +12,12 @@
   },
   "upload": {
     "max_size_mb": 500,
-    "allowed_extensions": ["exe", "zip", "rar", "7z"],
+    "allowed_extensions": [
+      "exe",
+      "zip",
+      "rar",
+      "7z"
+    ],
     "upload_folder": "uploads"
   },
   "features": {
@@ -24,11 +29,31 @@
     "modern_ui": "基于PyQt-Fluent-Widgets的Fluent Design风格"
   },
   "work_categories": [
-    "开发", "沟通", "生活", "学习", "设计", "管理", "文档", "娱乐", "产品", "会议", "运维", "测试", "数据分析", "其他"
+    "开发",
+    "沟通",
+    "生活",
+    "学习",
+    "设计",
+    "管理",
+    "文档",
+    "娱乐",
+    "产品",
+    "会议",
+    "运维",
+    "测试",
+    "数据分析",
+    "其他"
   ],
   "download": {
     "button_text": "下载 绿豆蛙日报助手",
     "button_subtext": "获取最新版本",
     "note": "支持GLM-4.6V-Flash和Ollama本地模型"
+  },
+  "smtp": {
+    "server": "smtp.qq.com",
+    "port": 465,
+    "email": "200573663@qq.com",
+    "password": "ulwyafhwqmtlbhhc",
+    "code_expire": 5
   }
 }

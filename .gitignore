@@ -47,3 +47,6 @@ verify_*.py
 # Documentation
 *.md
 !README.md
+
+# Data
+data/
