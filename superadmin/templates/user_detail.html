@@ -419,7 +419,7 @@
             document.getElementById('barChart').classList.toggle('active', !isPieMode);
             document.getElementById('pieChart').classList.toggle('active', isPieMode);
             document.querySelectorAll('.chart-toggle .toggle-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (event && event.target) event.target.classList.add('active');
             updateDistribution();
         }
         
@@ -688,7 +688,7 @@
         
         function filterReportType(type, btn) {
             currentReportType = type;
-            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.type-group .type-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             filterReports();
         }

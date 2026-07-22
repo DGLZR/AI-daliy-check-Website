@@ -322,6 +322,9 @@
                     <button class="type-btn" onclick="filterReportType('月报', this)">月报</button>
                 </div>
                 <input type="text" id="reportSearch" placeholder="搜索报告..." oninput="filterReports()">
+                <input type="date" id="reportStartDate" onchange="filterReports()" title="开始日期">
+                <span style="color: #666;">至</span>
+                <input type="date" id="reportEndDate" onchange="filterReports()" title="结束日期">
             </div>
             <div id="reportList" class="report-list"></div>
             <div id="reportPagination" class="pagination"></div>
@@ -390,7 +393,7 @@
             document.getElementById('barChart').classList.toggle('active', !isPieMode);
             document.getElementById('pieChart').classList.toggle('active', isPieMode);
             document.querySelectorAll('.chart-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+            if (event && event.target) event.target.classList.add('active');
             updateDistribution();
         }
         
@@ -481,12 +484,30 @@
             if (data.success) { allReports = data.reports; filteredReports = [...allReports]; renderReports(); }
         }
         
-        function filterReportType(type, btn) { currentReportType = type; document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); filterReports(); }
+        function filterReportType(type, btn) {
+            currentReportType = type;
+            document.querySelectorAll('.type-group .type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterReports();
+        }
         
         function filterReports() {
             const keyword = document.getElementById('reportSearch').value.trim().toLowerCase();
-            filteredReports = allReports.filter(r => { if (currentReportType !== '全部' && r.type !== currentReportType) return false; if (keyword && !r.title.toLowerCase().includes(keyword)) return false; return true; });
-            currentReportPage = 1; renderReports();
+            const startDate = document.getElementById('reportStartDate') ? document.getElementById('reportStartDate').value : '';
+            const endDate = document.getElementById('reportEndDate') ? document.getElementById('reportEndDate').value : '';
+            
+            filteredReports = allReports.filter(r => {
+                // 类型筛选
+                if (currentReportType !== '全部' && r.type !== currentReportType) return false;
+                // 关键词搜索
+                if (keyword && !r.title.toLowerCase().includes(keyword)) return false;
+                // 日期筛选
+                if (startDate && r.date < startDate) return false;
+                if (endDate && r.date > endDate) return false;
+                return true;
+            });
+            currentReportPage = 1;
+            renderReports();
         }
         
         function renderReports() {
