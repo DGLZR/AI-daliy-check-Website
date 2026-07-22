@@ -66,7 +66,7 @@ def init_csv():
                            '今日文档时长(分钟)', '今日娱乐时长(分钟)', '今日产品时长(分钟)',
                            '今日会议时长(分钟)', '今日运维时长(分钟)', '今日测试时长(分钟)',
                            '今日数据分析时长(分钟)', '今日其他时长(分钟)',
-                           '今日记录条数', '总共记录条数'])
+                           '今日记录条数', '总共记录条数', '今日生成报告数', '总共生成报告数'])
 
 def read_users():
     init_csv()
@@ -155,7 +155,9 @@ def init_user_detail(email):
         '今日数据分析时长(分钟)': 0,
         '今日其他时长(分钟)': 0,
         '今日记录条数': 0,
-        '总共记录条数': 0
+        '总共记录条数': 0,
+        '今日生成报告数': 0,
+        '总共生成报告数': 0
     }
     detail_data.append(new_detail)
     write_detail_data(detail_data)
@@ -225,12 +227,15 @@ def calculate_user_stats(email):
     user_folder = get_user_folder(email)
     records_file = os.path.join(user_folder, 'records.csv')
     summary_file = os.path.join(user_folder, 'daily_summary.csv')
+    report_folder = os.path.join(user_folder, 'report')
     
     today = datetime.now().strftime('%Y-%m-%d')
     
     stats = {
         'today_focus_minutes': 0,
         'today_type_minutes': {wt: 0 for wt in WORK_TYPES},
+        'today_records': 0,
+        'total_records': 0,
         'today_reports': 0,
         'total_reports': 0
     }
@@ -240,7 +245,9 @@ def calculate_user_stats(email):
         with open(records_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
+                stats['total_records'] += 1
                 if row['日期'] == today:
+                    stats['today_records'] += 1
                     try:
                         duration = float(row['持续时长(分钟)'])
                         work_type = row['工作类型']
@@ -250,16 +257,22 @@ def calculate_user_stats(email):
                     except (ValueError, KeyError):
                         pass
     
-    # 读取daily_summary.csv计算报告数量
-    if os.path.exists(summary_file):
-        with open(summary_file, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
+    # 统计报告数量
+    if os.path.exists(report_folder):
+        for filename in os.listdir(report_folder):
+            if filename.endswith('.md'):
+                stats['total_reports'] += 1
+                # 从文件名中提取日期
                 try:
-                    stats['total_reports'] += int(row.get('记录条数', 0))
-                    if row['日期'] == today:
-                        stats['today_reports'] = int(row.get('记录条数', 0))
-                except (ValueError, KeyError):
+                    # 文件名格式: title_YYYYMMDD_HHMMSS.md
+                    parts = filename.split('_')
+                    if len(parts) >= 2:
+                        date_str = parts[-2]  # YYYYMMDD
+                        if len(date_str) == 8:
+                            file_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
+                            if file_date == today:
+                                stats['today_reports'] += 1
+                except:
                     pass
     
     return stats
@@ -665,12 +678,14 @@ def report_generated():
     if not find_user(email):
         return jsonify({'success': False, 'message': '用户不存在'})
     
-    # 更新用户详情中的记录数量
-    user_details = load_user_details()
-    if email in user_details:
-        user_details[email]['今日记录条数'] = str(int(user_details[email].get('今日记录条数', '0')) + 1)
-        user_details[email]['总共记录条数'] = str(int(user_details[email].get('总共记录条数', '0')) + 1)
-        save_user_details(user_details)
+    # 更新用户详情中的报告数量（不是记录数量）
+    detail_data = read_detail_data()
+    for d in detail_data:
+        if d['邮箱'] == email:
+            d['今日生成报告数'] = str(int(d.get('今日生成报告数', '0')) + 1)
+            d['总共生成报告数'] = str(int(d.get('总共生成报告数', '0')) + 1)
+            break
+    write_detail_data(detail_data)
     
     return jsonify({'success': True, 'message': '报告生成记录已保存'})
 
@@ -730,12 +745,12 @@ def upload_report():
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(meta_content)
     
-    # 更新报告计数
+    # 更新报告计数（不是记录计数）
     detail_data = read_detail_data()
     for d in detail_data:
         if d['邮箱'] == email:
-            d['今日记录条数'] = str(int(d.get('今日记录条数', '0')) + 1)
-            d['总共记录条数'] = str(int(d.get('总共记录条数', '0')) + 1)
+            d['今日生成报告数'] = str(int(d.get('今日生成报告数', '0')) + 1)
+            d['总共生成报告数'] = str(int(d.get('总共生成报告数', '0')) + 1)
             break
     write_detail_data(detail_data)
     
@@ -992,8 +1007,10 @@ def admin_get_user_detail(email):
     user_detail['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
     for wt in WORK_TYPES:
         user_detail[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
-    user_detail['今日记录条数'] = stats['today_reports']
-    user_detail['总共记录条数'] = stats['total_reports']
+    user_detail['今日记录条数'] = stats['today_records']
+    user_detail['总共记录条数'] = stats['total_records']
+    user_detail['今日生成报告数'] = stats['today_reports']
+    user_detail['总共生成报告数'] = stats['total_reports']
     
     return jsonify({'success': True, 'user': user_detail})
 

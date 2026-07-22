@@ -299,6 +299,7 @@
             <div class="timeline-card">
                 <h2>⏱️ 活动时间线</h2>
                 <div id="timelineList" class="timeline-list"></div>
+                <div id="timelinePagination" class="pagination"></div>
             </div>
         </div>
         
@@ -307,11 +308,11 @@
             <h2>生成报告记录统计</h2>
             <div class="report-grid">
                 <div class="report-card">
-                    <div class="number">{{ detail.get('今日记录条数', '0') }}</div>
+                    <div class="number">{{ detail.get('今日生成报告数', '0') }}</div>
                     <div class="label">今日生成报告数</div>
                 </div>
                 <div class="report-card">
-                    <div class="number">{{ detail.get('总共记录条数', '0') }}</div>
+                    <div class="number">{{ detail.get('总共生成报告数', '0') }}</div>
                     <div class="label">总共生成报告数</div>
                 </div>
             </div>
@@ -356,6 +357,10 @@
         let isPieMode = false;
         let isPercentageMode = false;
         let pieChart = null;
+        
+        // 时间线分页相关
+        let currentTimelinePage = 1;
+        const timelinePerPage = 15;
         
         // 历史报告相关
         let allReports = [];
@@ -552,15 +557,25 @@
         function updateTimeline() {
             const records = getFilteredRecords().reverse();
             const container = document.getElementById('timelineList');
+            const paginationContainer = document.getElementById('timelinePagination');
             
             if (records.length === 0) {
                 container.innerHTML = '<div class="empty-state">暂无记录</div>';
+                paginationContainer.innerHTML = '';
                 return;
             }
             
+            // 计算分页
+            const totalPages = Math.ceil(records.length / timelinePerPage);
+            if (currentTimelinePage > totalPages) currentTimelinePage = 1;
+            
+            const startIdx = (currentTimelinePage - 1) * timelinePerPage;
+            const endIdx = Math.min(startIdx + timelinePerPage, records.length);
+            const pageRecords = records.slice(startIdx, endIdx);
+            
             container.innerHTML = '';
             
-            records.forEach((record, index) => {
+            pageRecords.forEach((record, index) => {
                 const time = record['时间'] || '';
                 const date = record['日期'] || '';
                 const workType = record['工作类型'] || '其他';
@@ -583,7 +598,7 @@
                     dateDisplay = `${parts[1]}/${parts[2]}`;
                 }
                 
-                const isLast = index === records.length - 1;
+                const isLast = index === pageRecords.length - 1;
                 
                 container.innerHTML += `
                     <div class="timeline-item">
@@ -603,6 +618,59 @@
                     </div>
                 `;
             });
+            
+            // 渲染分页
+            renderTimelinePagination(totalPages, records.length);
+        }
+        
+        function renderTimelinePagination(totalPages, totalRecords) {
+            const container = document.getElementById('timelinePagination');
+            
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let html = `<span style="margin-right: 15px; color: #666; font-size: 13px;">共 ${totalRecords} 条</span>`;
+            html += `<button class="page-btn" onclick="goToTimelinePage(${currentTimelinePage - 1})" ${currentTimelinePage === 1 ? 'disabled' : ''}>&lt;</button>`;
+            
+            // 显示页码
+            let startPage = Math.max(1, currentTimelinePage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            if (startPage > 1) {
+                html += `<button class="page-btn" onclick="goToTimelinePage(1)">1</button>`;
+                if (startPage > 2) html += `<span style="padding: 0 5px;">...</span>`;
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === currentTimelinePage ? 'active' : ''}" onclick="goToTimelinePage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += `<span style="padding: 0 5px;">...</span>`;
+                html += `<button class="page-btn" onclick="goToTimelinePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            html += `<button class="page-btn" onclick="goToTimelinePage(${currentTimelinePage + 1})" ${currentTimelinePage === totalPages ? 'disabled' : ''}>&gt;</button>`;
+            
+            container.innerHTML = html;
+        }
+        
+        function goToTimelinePage(page) {
+            const records = getFilteredRecords().reverse();
+            const totalPages = Math.ceil(records.length / timelinePerPage);
+            
+            if (page < 1 || page > totalPages) return;
+            
+            currentTimelinePage = page;
+            updateTimeline();
+            
+            // 滚动到时间线顶部
+            document.querySelector('.timeline-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
         // ========== 历史报告功能 ==========
