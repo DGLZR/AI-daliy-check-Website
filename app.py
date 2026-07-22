@@ -345,6 +345,41 @@ def send_email(to_email, subject, content):
 def index():
     return send_from_directory('static', 'index.html')
 
+@app.route('/login')
+def login_page():
+    return send_from_directory('static', 'login.html')
+
+@app.route('/user/<email>')
+def user_profile_page(email):
+    """用户个人详情页面（需要登录状态）"""
+    # 检查用户是否已登录
+    if session.get('logged_user') != email:
+        return redirect('/login')
+    
+    # 检查用户是否存在
+    user = find_user(email)
+    if not user:
+        session.pop('logged_user', None)
+        return redirect('/login')
+    
+    # 获取用户详情数据
+    detail_data = read_detail_data()
+    detail = next((d for d in detail_data if d['邮箱'] == email), {})
+    
+    # 计算统计数据
+    stats = calculate_user_stats(email)
+    
+    # 更新详情数据
+    detail['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
+    for wt in WORK_TYPES:
+        detail[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
+    detail['今日记录条数'] = stats['today_records']
+    detail['总共记录条数'] = stats['total_records']
+    detail['今日生成报告数'] = stats['today_reports']
+    detail['总共生成报告数'] = stats['total_reports']
+    
+    return render_template('user_profile.html', user=user, detail=detail, work_types=WORK_TYPES)
+
 @app.route('/<path:filename>')
 def static_files(filename):
     return send_from_directory('static', filename)
@@ -505,7 +540,34 @@ def login():
     # 更新详细数据
     update_detail_data_on_login(email)
     
+    # 设置登录状态
+    session['logged_user'] = email
+    
     return jsonify({'success': True, 'message': '登录成功'})
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    """用户登出"""
+    session.pop('logged_user', None)
+    return jsonify({'success': True, 'message': '已登出'})
+
+@app.route('/api/user/stats/<email>', methods=['GET'])
+def get_user_stats_api(email):
+    """获取用户统计数据（需要登录状态）"""
+    if session.get('logged_user') != email:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+    
+    stats = calculate_user_stats(email)
+    return jsonify({
+        'success': True,
+        'stats': {
+            'today_focus_minutes': round(stats['today_focus_minutes'], 1),
+            'today_records': stats['today_records'],
+            'total_records': stats['total_records'],
+            'today_reports': stats['today_reports'],
+            'total_reports': stats['total_reports']
+        }
+    })
 
 # ============ 用户数据接收接口 ============
 @app.route('/api/user/record', methods=['POST'])

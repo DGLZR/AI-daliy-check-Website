@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 绿豆蛙日报助手</title>
+    <link rel="icon" href="/favicon.jpg" type="image/jpeg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f9f0; }
+        
+        .header { background: white; padding: 20px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .header h1 { color: #2e7d32; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+        .header h1 img { width: 35px; height: 35px; border-radius: 50%; }
+        .header .header-actions { display: flex; gap: 10px; }
+        .header .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; transition: all 0.3s; }
+        .header .home-btn { background: #e8f5e9; color: #2e7d32; }
+        .header .home-btn:hover { background: #c8e6c9; }
+        .header .refresh-btn { background: #2196f3; color: white; }
+        .header .refresh-btn:hover { background: #1565c0; }
+        .header .logout-btn { background: #ef5350; color: white; }
+        .header .logout-btn:hover { background: #c62828; }
+        
+        .main { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        .user-profile { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .user-profile h2 { color: #2e7d32; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        .user-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4caf50, #81c784); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .info-item { background: #f5f5f5; padding: 15px 20px; border-radius: 10px; }
+        .info-item .label { color: #666; font-size: 14px; margin-bottom: 5px; }
+        .info-item .value { color: #333; font-size: 16px; font-weight: 600; }
+        
+        .stats-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .stats-section h2 { color: #2e7d32; margin-bottom: 20px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-card { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 20px; border-radius: 12px; text-align: center; }
+        .stat-card .number { font-size: 36px; font-weight: bold; color: #2e7d32; }
+        .stat-card .unit { font-size: 14px; color: #666; }
+        .stat-card .label { color: #555; margin-top: 8px; font-size: 14px; }
+        
+        .type-breakdown { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .type-breakdown h2 { color: #2e7d32; margin-bottom: 20px; }
+        
+        .type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .type-item { background: #f9f9f9; padding: 15px; border-radius: 10px; text-align: center; border-left: 4px solid #4caf50; }
+        .type-item .type-name { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .type-item .type-value { font-size: 20px; font-weight: bold; color: #333; }
+        
+        .timeline-section { margin-bottom: 30px; }
+        .timeline-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .timeline-card h2 { color: #2e7d32; margin-bottom: 20px; font-size: 18px; }
+        
+        .filter-bar { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .filter-bar input[type="date"] { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; }
+        .filter-bar input[type="date"]:focus { outline: none; border-color: #4caf50; }
+        .filter-bar .to-label { color: #666; }
+        .filter-bar select { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; background: white; }
+        .filter-bar input[type="text"] { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; flex: 1; min-width: 200px; }
+        .quick-btn { padding: 8px 16px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .quick-btn:hover { background: #4caf50; color: white; }
+        
+        .stats-row { display: flex; gap: 40px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-item { text-align: center; }
+        .stat-item .stat-value { font-size: 28px; font-weight: bold; color: #1a1a1a; }
+        .stat-item .stat-label { font-size: 12px; color: #999; margin-top: 5px; }
+        
+        .chart-toggle { display: flex; gap: 10px; margin-bottom: 15px; }
+        .toggle-btn { padding: 6px 16px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .toggle-btn.active { background: #1976d2; color: white; }
+        .toggle-btn:hover { background: #bbdefb; }
+        
+        .bar-chart { margin-top: 15px; }
+        .bar-row { display: flex; align-items: center; margin-bottom: 12px; gap: 12px; }
+        .bar-label { width: 60px; font-size: 13px; font-weight: 600; text-align: right; }
+        .bar-track { flex: 1; height: 10px; background: #ede; border-radius: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 5px; transition: width 0.5s ease; min-width: 4px; }
+        .bar-value { width: 60px; font-size: 13px; color: #999; text-align: left; }
+        
+        .pie-container { display: none; max-width: 400px; margin: 0 auto; }
+        .pie-container.active { display: block; }
+        .bar-container.active { display: block; }
+        
+        .timeline-list { margin-top: 15px; }
+        .timeline-item { display: flex; gap: 15px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .timeline-time { min-width: 80px; text-align: right; color: #999; font-size: 13px; padding-top: 2px; }
+        .timeline-dot { width: 20px; display: flex; flex-direction: column; align-items: center; }
+        .timeline-dot .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; }
+        .timeline-dot .line { width: 2px; flex: 1; background: #e0e0e0; }
+        .timeline-content { flex: 1; background: #fafafa; padding: 15px; border-radius: 10px; border: 1px solid #f0f0f0; }
+        .timeline-desc { font-size: 14px; color: #333; margin-bottom: 10px; line-height: 1.5; }
+        .timeline-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+        .timeline-tag { padding: 3px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; }
+        .timeline-tag.type { color: white; }
+        .timeline-tag.auto { background: #e0e0e0; color: #666; }
+        .timeline-tag.time { background: transparent; color: #ccc; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #ccc; font-size: 16px; }
+        
+        .pagination { display: flex; gap: 5px; margin-top: 20px; justify-content: center; align-items: center; }
+        .pagination .page-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .pagination .page-btn.active { background: #16a34a; color: white; border-color: #16a34a; }
+        .pagination .page-btn:hover:not(.active) { background: #f9fafb; }
+        .pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .history-reports { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .history-reports h2 { color: #2e7d32; margin-bottom: 20px; }
+        
+        .report-filter { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .report-filter .type-group { display: flex; gap: 0; }
+        .report-filter .type-btn { padding: 8px 16px; background: white; border: 1px solid #e5e7eb; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .report-filter .type-btn:first-child { border-radius: 6px 0 0 6px; }
+        .report-filter .type-btn:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+        .report-filter .type-btn.active { background: #16a34a; color: white; border-color: #16a34a; }
+        .report-filter .type-btn:hover:not(.active) { background: #f9fafb; }
+        .report-filter input[type="text"] { padding: 8px 15px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; width: 200px; }
+        .report-filter input[type="date"] { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+        
+        .report-list { margin-top: 15px; }
+        .report-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        .report-item:hover { background: #f9f9f9; }
+        .report-item:last-child { border-bottom: none; }
+        .report-info { flex: 1; }
+        .report-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 5px; }
+        .report-meta { display: flex; gap: 15px; font-size: 12px; color: #999; }
+        .report-meta span { display: flex; align-items: center; gap: 5px; }
+        .report-actions { display: flex; gap: 8px; }
+        .report-actions .action-btn { padding: 6px 12px; border: 1px solid #e5e7eb; background: white; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+        .report-actions .action-btn:hover { background: #f5f5f5; }
+        .report-actions .action-btn.view { color: #16a34a; border-color: #16a34a; }
+        
+        .report-type-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 10px; }
+        .report-type-tag.日报 { background: #e8f5e9; color: #2e7d32; }
+        .report-type-tag.周报 { background: #e3f2fd; color: #1565c0; }
+        .report-type-tag.月报 { background: #fff3e0; color: #e65100; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { padding: 20px 25px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { color: #333; font-size: 18px; }
+        .modal-close { width: 32px; height: 32px; border: none; background: #f5f5f5; border-radius: 6px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: #e5e7eb; }
+        .modal-body { padding: 25px; overflow-y: auto; flex: 1; }
+        .modal-body .report-content { line-height: 1.8; color: #333; }
+        .modal-body .report-content h1 { font-size: 24px; margin-bottom: 20px; color: #2e7d32; }
+        .modal-body .report-content h2 { font-size: 20px; margin: 20px 0 10px; color: #333; }
+        .modal-body .report-content h3 { font-size: 16px; margin: 15px 0 8px; color: #555; }
+        .modal-body .report-content p { margin-bottom: 12px; }
+        .modal-body .report-content ul, .modal-body .report-content ol { margin-left: 20px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <img src="/favicon.jpg" alt="绿豆蛙">
+            个人中心
+        </h1>
+        <div class="header-actions">
+            <a href="/" class="btn home-btn">返回首页</a>
+            <button class="btn refresh-btn" onclick="refreshData()" id="refreshBtn">刷新数据</button>
+            <button class="btn logout-btn" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+    
+    <div class="main">
+        <div class="user-profile">
+            <h2>
+                <div class="user-avatar">{{ user['邮箱'][0].upper() }}</div>
+                {{ user['邮箱'] }}
+            </h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">邮箱</div>
+                    <div class="value">{{ user['邮箱'] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">昵称</div>
+                    <div class="value">{{ detail.get('昵称', user['邮箱'].split('@')[0]) }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">注册时间</div>
+                    <div class="value">{{ user['注册时间'] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">最近登录时间</div>
+                    <div class="value">{{ user.get('最近登录时间', '从未登录') }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <h2>今日专注统计</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number">{{ detail.get('今日专注时长(分钟)', '0') }}</div>
+                    <div class="unit">分钟</div>
+                    <div class="label">今日专注时长</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ detail.get('今日记录条数', '0') }}</div>
+                    <div class="unit">条</div>
+                    <div class="label">今日记录条数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">{{ detail.get('总共记录条数', '0') }}</div>
+                    <div class="unit">条</div>
+                    <div class="label">总共记录条数</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="type-breakdown">
+            <h2>今日各类型专注时长（分钟）</h2>
+            <div class="type-grid">
+                {% for type in work_types %}
+                <div class="type-item">
+                    <div class="type-name">{{ type }}</div>
+                    <div class="type-value">{{ detail.get('今日' + type + '时长(分钟)', '0') }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="timeline-section">
+            <div class="timeline-card">
+                <h2>⏱️ 工作时间线</h2>
+                <div class="filter-bar">
+                    <input type="date" id="startDate" value="">
+                    <span class="to-label">至</span>
+                    <input type="date" id="endDate" value="">
+                    <select id="tagFilter">
+                        <option value="全部标签">全部标签</option>
+                        {% for type in work_types %}
+                        <option value="{{ type }}">{{ type }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="searchInput" placeholder="搜索活动...">
+                    <button class="quick-btn" onclick="quickFilter('today')">今天</button>
+                    <button class="quick-btn" onclick="quickFilter('week')">近7天</button>
+                    <button class="quick-btn" onclick="quickFilter('month')">近30天</button>
+                </div>
+            </div>
+            
+            <div class="timeline-card">
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <div class="stat-value" id="recordCount">0</div>
+                        <div class="stat-label">记录条数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalDuration">0h</div>
+                        <div class="stat-label">专注时长</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeTime">--:-- — --:--</div>
+                        <div class="stat-label">活跃时段</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="timeline-card">
+                <h2>📊 分类时长分布</h2>
+                <div class="chart-toggle">
+                    <button class="toggle-btn active" onclick="toggleChartMode('bar')">条形图</button>
+                    <button class="toggle-btn" onclick="toggleChartMode('pie')">饼状图</button>
+                    <button class="toggle-btn" onclick="toggleValueMode()">切换时长/占比</button>
+                </div>
+                <div id="barChart" class="bar-container active bar-chart"></div>
+                <div id="pieChart" class="pie-container">
+                    <canvas id="pieCanvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="timeline-card">
+                <h2>⏱️ 活动时间线</h2>
+                <div id="timelineList" class="timeline-list"></div>
+                <div id="timelinePagination" class="pagination"></div>
+            </div>
+        </div>
+        
+        <div class="history-reports">
+            <h2>📄 我的报告</h2>
+            <div class="report-filter">
+                <div class="type-group">
+                    <button class="type-btn active" onclick="filterReportType('全部', this)">全部</button>
+                    <button class="type-btn" onclick="filterReportType('日报', this)">日报</button>
+                    <button class="type-btn" onclick="filterReportType('周报', this)">周报</button>
+                    <button class="type-btn" onclick="filterReportType('月报', this)">月报</button>
+                </div>
+                <input type="text" id="reportSearch" placeholder="搜索报告..." oninput="filterReports()">
+            </div>
+            <div id="reportList" class="report-list"></div>
+            <div id="reportPagination" class="pagination"></div>
+        </div>
+    </div>
+    
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">报告标题</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent" class="report-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const email = '{{ user["邮箱"] }}';
+        let allRecords = [];
+        let isPieMode = false;
+        let isPercentageMode = false;
+        let pieChart = null;
+        let currentTimelinePage = 1;
+        const timelinePerPage = 15;
+        
+        let allReports = [];
+        let filteredReports = [];
+        let currentReportType = '全部';
+        let currentReportPage = 1;
+        const reportsPerPage = 5;
+        
+        const TYPE_COLORS = {
+            '开发': '#4CAF50', '沟通': '#2196F3', '生活': '#FF9800', '学习': '#9C27B0',
+            '设计': '#E91E63', '管理': '#00BCD4', '文档': '#795548', '娱乐': '#F44336',
+            '产品': '#3F51B5', '会议': '#FFEB3B', '运维': '#607D8B', '测试': '#8BC34A',
+            '数据分析': '#FF5722', '其他': '#9E9E9E'
+        };
+        
+        function initDates() {
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            document.getElementById('startDate').value = weekAgo.toISOString().split('T')[0];
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').addEventListener('change', loadData);
+            document.getElementById('endDate').addEventListener('change', loadData);
+            document.getElementById('tagFilter').addEventListener('change', loadData);
+            document.getElementById('searchInput').addEventListener('input', loadData);
+        }
+        
+        function quickFilter(type) {
+            const today = new Date();
+            const start = document.getElementById('startDate');
+            const end = document.getElementById('endDate');
+            end.value = today.toISOString().split('T')[0];
+            if (type === 'today') start.value = today.toISOString().split('T')[0];
+            else if (type === 'week') { const d = new Date(today); d.setDate(d.getDate()-7); start.value = d.toISOString().split('T')[0]; }
+            else if (type === 'month') { const d = new Date(today); d.setDate(d.getDate()-30); start.value = d.toISOString().split('T')[0]; }
+            loadData();
+        }
+        
+        function toggleChartMode(mode) {
+            isPieMode = mode === 'pie';
+            document.getElementById('barChart').classList.toggle('active', !isPieMode);
+            document.getElementById('pieChart').classList.toggle('active', isPieMode);
+            document.querySelectorAll('.chart-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            updateDistribution();
+        }
+        
+        function toggleValueMode() { isPercentageMode = !isPercentageMode; updateDistribution(); }
+        
+        async function loadData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const response = await fetch(`/api/user/records/${encodeURIComponent(email)}?start=${startDate}&end=${endDate}`);
+            const data = await response.json();
+            if (data.success) { allRecords = data.records; updateStats(); updateDistribution(); updateTimeline(); }
+        }
+        
+        function updateStats() {
+            const records = getFilteredRecords();
+            document.getElementById('recordCount').textContent = records.length;
+            let totalMinutes = 0;
+            records.forEach(r => { totalMinutes += parseFloat(r['持续时长(分钟)'] || 0); });
+            document.getElementById('totalDuration').textContent = (totalMinutes / 60).toFixed(1) + 'h';
+            if (records.length > 0) {
+                const times = records.map(r => r['时间']).filter(t => t);
+                if (times.length > 0) {
+                    document.getElementById('activeTime').textContent = `${times.reduce((a,b)=>a<b?a:b).substring(0,5)} — ${times.reduce((a,b)=>a>b?a:b).substring(0,5)}`;
+                }
+            } else { document.getElementById('activeTime').textContent = '--:-- — --:--'; }
+        }
+        
+        function getFilteredRecords() {
+            let records = [...allRecords];
+            const tag = document.getElementById('tagFilter').value;
+            if (tag !== '全部标签') records = records.filter(r => r['工作类型'] === tag);
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (keyword) records = records.filter(r => (r['工作描述'] || '').toLowerCase().includes(keyword));
+            return records;
+        }
+        
+        function updateDistribution() {
+            const records = getFilteredRecords();
+            const typeHours = {}; let totalMinutes = 0;
+            records.forEach(r => { const type = r['工作类型'] || '其他'; const minutes = parseFloat(r['持续时长(分钟)'] || 0); typeHours[type] = (typeHours[type] || 0) + minutes; totalMinutes += minutes; });
+            const sorted = Object.entries(typeHours).sort((a, b) => b[1] - a[1]);
+            const barContainer = document.getElementById('barChart'); barContainer.innerHTML = '';
+            sorted.forEach(([type, minutes]) => {
+                const hours = minutes / 60; const percentage = totalMinutes > 0 ? (minutes / totalMinutes * 100) : 0; const color = TYPE_COLORS[type] || '#607D8B'; const value = isPercentageMode ? `${percentage.toFixed(1)}%` : `${hours.toFixed(1)}h`;
+                barContainer.innerHTML += `<div class="bar-row"><div class="bar-label" style="color:${color}">${type}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,percentage)}%;background:${color}"></div></div><div class="bar-value">${value}</div></div>`;
+            });
+            if (isPieMode && sorted.length > 0) {
+                const ctx = document.getElementById('pieCanvas').getContext('2d');
+                if (pieChart) pieChart.destroy();
+                pieChart = new Chart(ctx, { type: 'pie', data: { labels: sorted.map(([t])=>t), datasets: [{ data: sorted.map(([,m])=>isPercentageMode?(m/totalMinutes*100).toFixed(1):(m/60).toFixed(1)), backgroundColor: sorted.map(([t])=>TYPE_COLORS[t]||'#607D8B'), borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}${isPercentageMode?'%':'h'}` } } } } });
+            }
+        }
+        
+        function updateTimeline() {
+            const records = getFilteredRecords().reverse();
+            const container = document.getElementById('timelineList');
+            const paginationContainer = document.getElementById('timelinePagination');
+            if (records.length === 0) { container.innerHTML = '<div class="empty-state">暂无记录</div>'; paginationContainer.innerHTML = ''; return; }
+            const totalPages = Math.ceil(records.length / timelinePerPage);
+            if (currentTimelinePage > totalPages) currentTimelinePage = 1;
+            const startIdx = (currentTimelinePage - 1) * timelinePerPage;
+            const endIdx = Math.min(startIdx + timelinePerPage, records.length);
+            const pageRecords = records.slice(startIdx, endIdx);
+            container.innerHTML = '';
+            pageRecords.forEach((record, index) => {
+                const time = record['时间'] || ''; const date = record['日期'] || ''; const workType = record['工作类型'] || '其他'; const description = record['工作描述'] || ''; const duration = parseFloat(record['持续时长(分钟)'] || 0); const color = TYPE_COLORS[workType] || '#607D8B';
+                let timeRange = '';
+                if (time && duration > 0) { const [h,m] = time.split(':').map(Number); const endM = h*60+m+duration; timeRange = `${time.substring(0,5)} — ${String(Math.floor(endM/60)%24).padStart(2,'0')}:${String(Math.floor(endM%60)).padStart(2,'0')}`; }
+                let dateDisplay = date ? `${date.split('-')[1]}/${date.split('-')[2]}` : '';
+                container.innerHTML += `<div class="timeline-item"><div class="timeline-time">${dateDisplay}<br>${time.substring(0,5)}</div><div class="timeline-dot"><div class="dot" style="background:${color}"></div>${index<pageRecords.length-1?'<div class="line"></div>':''}</div><div class="timeline-content"><div class="timeline-desc">${description||'无描述'}</div><div class="timeline-tags"><span class="timeline-tag type" style="background:${color}">${workType}</span><span class="timeline-tag auto">自动记录</span>${timeRange?`<span class="timeline-tag time">${timeRange}</span>`:''}</div></div></div>`;
+            });
+            let html = `<span style="margin-right:15px;color:#666;font-size:13px;">共 ${records.length} 条</span><button class="page-btn" onclick="goToTimelinePage(${currentTimelinePage-1})" ${currentTimelinePage===1?'disabled':''}>&lt;</button>`;
+            for (let i = Math.max(1,currentTimelinePage-2); i <= Math.min(totalPages,currentTimelinePage+2); i++) { html += `<button class="page-btn ${i===currentTimelinePage?'active':''}" onclick="goToTimelinePage(${i})">${i}</button>`; }
+            html += `<button class="page-btn" onclick="goToTimelinePage(${currentTimelinePage+1})" ${currentTimelinePage===totalPages?'disabled':''}>&gt;</button>`;
+            paginationContainer.innerHTML = html;
+        }
+        
+        function goToTimelinePage(page) {
+            const records = getFilteredRecords().reverse();
+            const totalPages = Math.ceil(records.length / timelinePerPage);
+            if (page < 1 || page > totalPages) return;
+            currentTimelinePage = page; updateTimeline();
+        }
+        
+        async function loadReports() {
+            const response = await fetch(`/api/user/reports/${encodeURIComponent(email)}`);
+            const data = await response.json();
+            if (data.success) { allReports = data.reports; filteredReports = [...allReports]; renderReports(); }
+        }
+        
+        function filterReportType(type, btn) { currentReportType = type; document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); filterReports(); }
+        
+        function filterReports() {
+            const keyword = document.getElementById('reportSearch').value.trim().toLowerCase();
+            filteredReports = allReports.filter(r => { if (currentReportType !== '全部' && r.type !== currentReportType) return false; if (keyword && !r.title.toLowerCase().includes(keyword)) return false; return true; });
+            currentReportPage = 1; renderReports();
+        }
+        
+        function renderReports() {
+            const container = document.getElementById('reportList');
+            const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+            const pageReports = filteredReports.slice((currentReportPage-1)*reportsPerPage, currentReportPage*reportsPerPage);
+            if (pageReports.length === 0) { container.innerHTML = '<div class="empty-state">暂无报告</div>'; document.getElementById('reportPagination').innerHTML = ''; return; }
+            container.innerHTML = pageReports.map(r => `<div class="report-item"><div class="report-info"><div class="report-title">${r.title}<span class="report-type-tag ${r.type}">${r.type}</span></div><div class="report-meta"><span>📅 ${r.time||r.date}</span><span>📝 ${r.word_count||0} 字</span></div></div><div class="report-actions"><button class="action-btn view" onclick="viewReport('${r.filename}')">查看</button></div></div>`).join('');
+            let html = '';
+            if (totalPages > 1) {
+                html = `<button class="page-btn" onclick="goToReportPage(${currentReportPage-1})" ${currentReportPage===1?'disabled':''}>&lt;</button>`;
+                for (let i = 1; i <= totalPages; i++) html += `<button class="page-btn ${i===currentReportPage?'active':''}" onclick="goToReportPage(${i})">${i}</button>`;
+                html += `<button class="page-btn" onclick="goToReportPage(${currentReportPage+1})" ${currentReportPage===totalPages?'disabled':''}>&gt;</button>`;
+            }
+            document.getElementById('reportPagination').innerHTML = html;
+        }
+        
+        function goToReportPage(page) { const totalPages = Math.ceil(filteredReports.length / reportsPerPage); if (page<1||page>totalPages) return; currentReportPage = page; renderReports(); }
+        
+        async function viewReport(filename) {
+            const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`);
+            const data = await response.json();
+            if (data.success) { document.getElementById('modalTitle').textContent = data.title; document.getElementById('modalContent').innerHTML = data.content; document.getElementById('reportModal').classList.add('active'); }
+        }
+        
+        function closeModal() { document.getElementById('reportModal').classList.remove('active'); }
+        document.getElementById('reportModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+        
+        async function refreshData() {
+            const btn = document.getElementById('refreshBtn'); btn.textContent = '刷新中...';
+            await loadData(); await loadReports();
+            const response = await fetch(`/api/user/stats/${encodeURIComponent(email)}`);
+            const data = await response.json();
+            if (data.success) {
+                const statCards = document.querySelectorAll('.stat-card .number');
+                if (statCards.length >= 3) { statCards[0].textContent = data.stats.today_focus_minutes; statCards[1].textContent = data.stats.today_records; statCards[2].textContent = data.stats.total_records; }
+            }
+            btn.textContent = '刷新数据';
+        }
+        
+        function logout() {
+            fetch('/api/logout', { method: 'POST' }).then(() => { window.location.href = '/'; });
+        }
+        
+        initDates(); loadData(); loadReports();
+    </script>
+</body>
+</html>

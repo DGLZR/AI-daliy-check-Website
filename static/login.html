@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录/注册 - 绿豆蛙日报助手</title>
+    <link rel="icon" href="/favicon.jpg" type="image/jpeg">
+    <style>
+        *, *:before, *:after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input, button {
+            border: none;
+            outline: none;
+            background: none;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #2e7d32;
+            text-decoration: none;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .dowebok {
+            overflow: hidden;
+            position: relative;
+            width: 900px;
+            height: 550px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(46, 125, 50, 0.2);
+        }
+
+        .form {
+            position: relative;
+            width: 640px;
+            height: 100%;
+            transition: transform 0.6s ease-in-out;
+            padding: 50px 30px 0;
+        }
+
+        .sub-cont {
+            overflow: hidden;
+            position: absolute;
+            left: 640px;
+            top: 0;
+            width: 900px;
+            height: 100%;
+            padding-left: 260px;
+            background: #fff;
+            transition: transform 0.6s ease-in-out;
+        }
+
+        .dowebok.s--signup .sub-cont {
+            transform: translate3d(-640px, 0, 0);
+        }
+
+        button {
+            display: block;
+            margin: 0 auto;
+            width: 260px;
+            height: 40px;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .img {
+            overflow: hidden;
+            z-index: 2;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100%;
+            padding-top: 360px;
+        }
+
+        .img:before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 900px;
+            height: 100%;
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            transition: transform 0.6s ease-in-out;
+        }
+
+        .img:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .dowebok.s--signup .img:before {
+            transform: translate3d(640px, 0, 0);
+        }
+
+        .img__text {
+            z-index: 2;
+            position: absolute;
+            left: 0;
+            top: 50px;
+            width: 100%;
+            padding: 0 20px;
+            text-align: center;
+            color: #fff;
+            transition: transform 0.6s ease-in-out;
+        }
+
+        .img__text h2 {
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .img__text p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .dowebok.s--signup .img__text.m--up {
+            transform: translateX(520px);
+        }
+        .img__text.m--in {
+            transform: translateX(-520px);
+        }
+
+        .dowebok.s--signup .img__text.m--in {
+            transform: translateX(0);
+        }
+
+        .img__btn {
+            overflow: hidden;
+            z-index: 2;
+            position: relative;
+            width: 100px;
+            height: 36px;
+            margin: 0 auto;
+            background: transparent;
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .img__btn:after {
+            content: '';
+            z-index: 2;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #fff;
+            border-radius: 30px;
+        }
+
+        .img__btn span {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+        }
+
+        .img__btn span.m--in {
+            transform: translateY(-72px);
+        }
+
+        .dowebok.s--signup .img__btn span.m--in {
+            transform: translateY(0);
+        }
+
+        .dowebok.s--signup .img__btn span.m--up {
+            transform: translateY(72px);
+        }
+
+        h2 {
+            width: 100%;
+            font-size: 26px;
+            text-align: center;
+            color: #2e7d32;
+        }
+
+        label {
+            display: block;
+            width: 260px;
+            margin: 25px auto 0;
+            text-align: center;
+        }
+
+        label span {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin-top: 5px;
+            padding-bottom: 5px;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        input:focus {
+            border-bottom-color: #4caf50;
+        }
+
+        .forgot-pass {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .forgot-pass a {
+            color: #999;
+        }
+
+        .submit {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .fb-btn {
+            border: 2px solid #e0e0e0;
+            color: #666;
+        }
+        .fb-btn:hover {
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+
+        .sign-in {
+            transition-timing-function: ease-out;
+        }
+        .dowebok.s--signup .sign-in {
+            transition-timing-function: ease-in-out;
+            transition-duration: 0.6s;
+            transform: translate3d(640px, 0, 0);
+        }
+
+        .sign-up {
+            transform: translate3d(-900px, 0, 0);
+        }
+        .dowebok.s--signup .sign-up {
+            transform: translate3d(0, 0, 0);
+        }
+
+        .error-msg {
+            color: #ef5350;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 18px;
+        }
+
+        .success-msg {
+            color: #4caf50;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 18px;
+        }
+
+        .code-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .code-row label {
+            flex: 1;
+            margin: 0;
+        }
+
+        .code-btn {
+            width: auto !important;
+            padding: 0 15px;
+            height: 30px;
+            font-size: 12px;
+            background: #e8f5e9;
+            color: #4caf50;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .code-btn:hover {
+            background: #c8e6c9;
+        }
+
+        .code-btn:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .dowebok {
+                width: 100%;
+                height: auto;
+                min-height: 100vh;
+                border-radius: 0;
+            }
+            
+            .form {
+                width: 100%;
+                padding: 80px 30px 30px;
+            }
+            
+            .sub-cont {
+                left: 100%;
+                width: 100%;
+                padding-left: 0;
+            }
+            
+            .dowebok.s--signup .sub-cont {
+                transform: translate3d(-100%, 0, 0);
+            }
+            
+            .dowebok.s--signup .sign-in {
+                transform: translate3d(100%, 0, 0);
+            }
+            
+            .img {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">
+        <i class="fas fa-arrow-left"></i> 返回首页
+    </a>
+
+    <div class="dowebok">
+        <!-- 登录表单 -->
+        <div class="form sign-in">
+            <h2>欢迎回来</h2>
+            <label>
+                <span>邮箱</span>
+                <input type="email" id="loginEmail" placeholder="请输入邮箱" />
+            </label>
+            <label>
+                <span>密码</span>
+                <input type="password" id="loginPassword" placeholder="请输入密码" />
+            </label>
+            <div id="loginError" class="error-msg"></div>
+            <button type="button" class="submit" onclick="handleLogin()">登 录</button>
+        </div>
+        
+        <div class="sub-cont">
+            <div class="img">
+                <div class="img__text m--up">
+                    <h2>还未注册？</h2>
+                    <p>立即注册，开始智能工作记录之旅！</p>
+                </div>
+                <div class="img__text m--in">
+                    <h2>已有帐号？</h2>
+                    <p>有帐号就登录吧，好久不见了！</p>
+                </div>
+                <div class="img__btn">
+                    <span class="m--up">注 册</span>
+                    <span class="m--in">登 录</span>
+                </div>
+            </div>
+            
+            <!-- 注册表单 -->
+            <div class="form sign-up">
+                <h2>立即注册</h2>
+                <label>
+                    <span>邮箱</span>
+                    <input type="email" id="regEmail" placeholder="请输入邮箱" />
+                </label>
+                <div class="code-row">
+                    <label>
+                        <span>验证码</span>
+                        <input type="text" id="regCode" placeholder="请输入验证码" maxlength="6" />
+                    </label>
+                    <button type="button" class="code-btn" id="sendCodeBtn" onclick="sendCode()">发送验证码</button>
+                </div>
+                <label>
+                    <span>密码</span>
+                    <input type="password" id="regPassword" placeholder="请设置密码（至少6位）" />
+                </label>
+                <div id="regError" class="error-msg"></div>
+                <div id="regSuccess" class="success-msg"></div>
+                <button type="button" class="submit" onclick="handleRegister()">注 册</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        // 切换登录注册
+        document.querySelector('.img__btn').addEventListener('click', function() {
+            document.querySelector('.dowebok').classList.toggle('s--signup');
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('regError').textContent = '';
+            document.getElementById('regSuccess').textContent = '';
+        });
+
+        // 检查URL hash，如果是#register则切换到注册页面
+        if (window.location.hash === '#register') {
+            document.querySelector('.dowebok').classList.add('s--signup');
+        }
+
+        // 发送验证码
+        async function sendCode() {
+            const email = document.getElementById('regEmail').value.trim();
+            if (!email) {
+                document.getElementById('regError').textContent = '请输入邮箱地址';
+                return;
+            }
+
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true;
+            btn.textContent = '发送中...';
+
+            try {
+                const response = await fetch('/api/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('regError').textContent = '';
+                    document.getElementById('regSuccess').textContent = '验证码已发送到邮箱';
+                    // 倒计时60秒
+                    let countdown = 60;
+                    const timer = setInterval(() => {
+                        countdown--;
+                        btn.textContent = `${countdown}s`;
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            btn.textContent = '发送验证码';
+                            btn.disabled = false;
+                        }
+                    }, 1000);
+                } else {
+                    document.getElementById('regError').textContent = data.message;
+                    btn.textContent = '发送验证码';
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                document.getElementById('regError').textContent = '发送失败，请稍后重试';
+                btn.textContent = '发送验证码';
+                btn.disabled = false;
+            }
+        }
+
+        // 登录
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if (!email || !password) {
+                document.getElementById('loginError').textContent = '请填写邮箱和密码';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // 登录成功，跳转到用户详情页面
+                    window.location.href = '/user/' + encodeURIComponent(email);
+                } else {
+                    document.getElementById('loginError').textContent = data.message;
+                }
+            } catch (error) {
+                document.getElementById('loginError').textContent = '登录失败，请稍后重试';
+            }
+        }
+
+        // 注册
+        async function handleRegister() {
+            const email = document.getElementById('regEmail').value.trim();
+            const code = document.getElementById('regCode').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+
+            if (!email || !code || !password) {
+                document.getElementById('regError').textContent = '请填写完整信息';
+                document.getElementById('regSuccess').textContent = '';
+                return;
+            }
+
+            if (password.length < 6) {
+                document.getElementById('regError').textContent = '密码至少需要6位';
+                document.getElementById('regSuccess').textContent = '';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code, password })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('regError').textContent = '';
+                    document.getElementById('regSuccess').textContent = '注册成功！正在跳转...';
+                    // 注册成功后自动登录并跳转
+                    setTimeout(() => {
+                        window.location.href = '/user/' + encodeURIComponent(email);
+                    }, 1500);
+                } else {
+                    document.getElementById('regError').textContent = data.message;
+                    document.getElementById('regSuccess').textContent = '';
+                }
+            } catch (error) {
+                document.getElementById('regError').textContent = '注册失败，请稍后重试';
+                document.getElementById('regSuccess').textContent = '';
+            }
+        }
+
+        // 回车提交
+        document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+        document.getElementById('regPassword').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleRegister();
+        });
+    </script>
+</body>
+</html>
