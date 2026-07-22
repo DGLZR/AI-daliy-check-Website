@@ -5,11 +5,22 @@ import csv
 import smtplib
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
 from superadmin import superadmin_bp
+
+# 东八区时区
+CHINA_TZ = timezone(timedelta(hours=8))
+
+def get_china_time():
+    """获取东八区当前时间"""
+    return datetime.now(CHINA_TZ)
+
+def get_china_time_str(fmt='%Y-%m-%d %H:%M:%S'):
+    """获取东八区当前时间字符串"""
+    return get_china_time().strftime(fmt)
 
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.urandom(24).hex()
@@ -186,7 +197,7 @@ def add_user(email, password):
     users.append({
         '邮箱': email,
         '密码': password,
-        '注册时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        '注册时间': get_china_time_str('%Y-%m-%d %H:%M:%S'),
         '状态': '正常',
         '最近登录时间': ''
     })
@@ -335,7 +346,7 @@ def calculate_user_stats(email):
     summary_file = os.path.join(user_folder, 'daily_summary.csv')
     report_folder = os.path.join(user_folder, 'report')
     
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = get_china_time_str('%Y-%m-%d')
     
     stats = {
         'today_focus_minutes': 0,
@@ -390,7 +401,7 @@ def update_detail_data_on_login(email):
     
     for d in detail_data:
         if d['邮箱'] == email:
-            d['最近登录时间'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            d['最近登录时间'] = get_china_time_str('%Y-%m-%d %H:%M:%S')
             d['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
             for wt in WORK_TYPES:
                 d[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
@@ -509,9 +520,9 @@ def upload_file():
         if not allowed_file(file.filename):
             return jsonify({'error': f'不允许的文件类型'}), 400
         
-        filename = secure_filename(file.filename) or f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}.exe"
+        filename = secure_filename(file.filename) or f"upload_{get_china_time_str('%Y%m%d_%H%M%S')}.exe"
         name, ext = os.path.splitext(filename)
-        filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
+        filename = f"{name}_{get_china_time_str('%Y%m%d_%H%M%S')}{ext}"
         
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
@@ -521,7 +532,7 @@ def upload_file():
             'filename': filename,
             'original_name': file.filename,
             'size': os.path.getsize(filepath),
-            'upload_time': datetime.now().isoformat(),
+            'upload_time': get_china_time().isoformat(),
             'path': filepath
         })
         if len(files_info['files']) == 1:
@@ -594,7 +605,7 @@ def send_code():
     code = generate_code()
     verification_codes[email] = {
         'code': code,
-        'expire': datetime.now() + timedelta(minutes=config.get('smtp', {}).get('code_expire', 5))
+        'expire': get_china_time() + timedelta(minutes=config.get('smtp', {}).get('code_expire', 5))
     }
     
     html = f'<div style="font-family:Arial;max-width:500px;margin:0 auto;"><h2 style="color:#4caf50;">绿豆蛙日报助手</h2><p>您的验证码：</p><div style="background:#f5f5f5;padding:20px;text-align:center;font-size:32px;font-weight:bold;letter-spacing:5px;">{code}</div><p style="color:#666;">5分钟内有效</p></div>'
@@ -614,7 +625,7 @@ def register():
         return jsonify({'success': False, 'message': '请先发送验证码'})
     
     stored = verification_codes[email]
-    if datetime.now() > stored['expire']:
+    if get_china_time() > stored['expire']:
         del verification_codes[email]
         return jsonify({'success': False, 'message': '验证码已过期'})
     if stored['code'] != code:
@@ -647,7 +658,7 @@ def login():
     if not os.path.exists(user_folder):
         create_user_folder(email)
     
-    update_user(email, {'最近登录时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    update_user(email, {'最近登录时间': get_china_time_str('%Y-%m-%d %H:%M:%S')})
     # 更新详细数据
     update_detail_data_on_login(email)
     
@@ -751,8 +762,8 @@ def add_user_record():
     # 添加新记录
     new_record = {
         'ID': max_id + 1,
-        '日期': data.get('date', datetime.now().strftime('%Y-%m-%d')),
-        '时间': data.get('time', datetime.now().strftime('%H:%M:%S')),
+        '日期': data.get('date', get_china_time_str('%Y-%m-%d')),
+        '时间': data.get('time', get_china_time_str('%H:%M:%S')),
         '工作类型': data.get('work_type', '其他'),
         '工作描述': data.get('description', ''),
         '持续时长(分钟)': data.get('duration', 0)
@@ -784,7 +795,7 @@ def update_user_daily_summary():
     
     summary_file = os.path.join(user_folder, 'daily_summary.csv')
     
-    date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+    date = data.get('date', get_china_time_str('%Y-%m-%d'))
     
     # 读取现有数据
     summaries = []
@@ -932,7 +943,7 @@ def upload_report():
     cleanup_report_folder(email)
     
     # 生成文件名
-    now = datetime.now()
+    now = get_china_time()
     if not title:
         title = f"{report_type}_{now.strftime('%Y%m%d_%H%M%S')}"
     
@@ -1009,7 +1020,7 @@ def get_user_reports(email):
                         try:
                             dt = datetime.strptime(generate_time, '%Y-%m-%d %H:%M:%S')
                             date = dt.strftime('%Y-%m-%d')
-                            today = datetime.now().strftime('%Y-%m-%d')
+                            today = get_china_time_str('%Y-%m-%d')
                             if dt.strftime('%Y-%m-%d') == today:
                                 generate_time = f"今日 {dt.strftime('%H:%M')}"
                             else:
@@ -1257,9 +1268,9 @@ def admin_upload_package():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': '不支持的文件类型'})
     
-    filename = secure_filename(file.filename) or f"package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.exe"
+    filename = secure_filename(file.filename) or f"package_{get_china_time_str('%Y%m%d_%H%M%S')}.exe"
     name, ext = os.path.splitext(filename)
-    filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
+    filename = f"{name}_{get_china_time_str('%Y%m%d_%H%M%S')}{ext}"
     
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
@@ -1271,7 +1282,7 @@ def admin_upload_package():
         'filename': filename,
         'original_name': file.filename,
         'size': os.path.getsize(filepath),
-        'upload_time': datetime.now().isoformat(),
+        'upload_time': get_china_time().isoformat(),
         'path': filepath,
         'note': note
     })

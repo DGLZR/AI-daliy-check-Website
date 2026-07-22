@@ -6,9 +6,20 @@ import random
 import string
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import hashlib
+
+# 东八区时区
+CHINA_TZ = timezone(timedelta(hours=8))
+
+def get_china_time():
+    """获取东八区当前时间"""
+    return datetime.now(CHINA_TZ)
+
+def get_china_time_str(fmt='%Y-%m-%d %H:%M:%S'):
+    """获取东八区当前时间字符串"""
+    return get_china_time().strftime(fmt)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()
@@ -91,7 +102,7 @@ def add_user(email, password):
     new_user = {
         '邮箱': email,
         '密码': password,
-        '注册时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        '注册时间': get_china_time_str('%Y-%m-%d %H:%M:%S'),
         '状态': '正常',
         '最近登录时间': ''
     }
@@ -162,7 +173,7 @@ def send_code():
     expire_minutes = load_config()['code_expire_minutes']
     verification_codes[email] = {
         'code': code,
-        'expire': datetime.now() + timedelta(minutes=expire_minutes)
+        'expire': get_china_time() + timedelta(minutes=expire_minutes)
     }
     
     html_content = f'''
@@ -199,7 +210,7 @@ def register():
         return jsonify({'success': False, 'message': '请先发送验证码'})
     
     stored = verification_codes[email]
-    if datetime.now() > stored['expire']:
+    if get_china_time() > stored['expire']:
         del verification_codes[email]
         return jsonify({'success': False, 'message': '验证码已过期'})
     
@@ -237,7 +248,7 @@ def login():
         return jsonify({'success': False, 'message': '账号已被禁用'})
     
     # 更新最近登录时间
-    update_user(email, {'最近登录时间': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+    update_user(email, {'最近登录时间': get_china_time_str('%Y-%m-%d %H:%M:%S')})
     
     return jsonify({'success': True, 'message': '登录成功'})
 
@@ -352,7 +363,7 @@ def admin_test_email():
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
         <h2 style="color: #4caf50;">测试邮件</h2>
         <p>这是一封测试邮件，SMTP配置正常！</p>
-        <p style="color: #666;">发送时间: ''' + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '''</p>
+        <p style="color: #666;">发送时间: ''' + get_china_time_str('%Y-%m-%d %H:%M:%S') + '''</p>
     </div>
     '''
     
