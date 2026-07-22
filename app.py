@@ -499,11 +499,16 @@ def add_user_record():
     if not email:
         return jsonify({'success': False, 'message': '缺少邮箱参数'})
     
-    user_folder = get_user_folder(email)
-    records_file = os.path.join(user_folder, 'records.csv')
+    # 如果用户不存在，自动创建
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
     
-    if not os.path.exists(records_file):
-        return jsonify({'success': False, 'message': '用户数据不存在'})
+    # 获取或创建用户文件夹
+    user_folder = get_user_folder(email)
+    if not os.path.exists(user_folder):
+        create_user_folder(email)
+    
+    records_file = os.path.join(user_folder, 'records.csv')
     
     # 读取现有记录获取最大ID
     max_id = 0
@@ -540,11 +545,16 @@ def update_user_daily_summary():
     if not email:
         return jsonify({'success': False, 'message': '缺少邮箱参数'})
     
-    user_folder = get_user_folder(email)
-    summary_file = os.path.join(user_folder, 'daily_summary.csv')
+    # 如果用户不存在，返回错误
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
     
-    if not os.path.exists(summary_file):
-        return jsonify({'success': False, 'message': '用户数据不存在'})
+    # 获取或创建用户文件夹
+    user_folder = get_user_folder(email)
+    if not os.path.exists(user_folder):
+        create_user_folder(email)
+    
+    summary_file = os.path.join(user_folder, 'daily_summary.csv')
     
     date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
     
@@ -611,6 +621,32 @@ def get_user_stats(email):
             'total_reports': stats['total_reports']
         }
     })
+
+@app.route('/api/user/records/<email>', methods=['GET'])
+def get_user_records(email):
+    """获取用户记录（支持日期筛选）"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    start_date = request.args.get('start', '')
+    end_date = request.args.get('end', '')
+    
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    
+    records = []
+    if os.path.exists(records_file):
+        with open(records_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                record_date = row.get('日期', '')
+                if start_date and record_date < start_date:
+                    continue
+                if end_date and record_date > end_date:
+                    continue
+                records.append(row)
+    
+    return jsonify({'success': True, 'records': records})
 
 # ============ 管理员API ============
 @app.route('/api/admin/login', methods=['POST'])
