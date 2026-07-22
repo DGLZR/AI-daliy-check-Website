@@ -28,6 +28,10 @@
         .panel.active { display: block; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .card h2 { color: #2e7d32; margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-header h2 { margin-bottom: 0; }
+        .card-header input { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; width: 250px; }
+        .card-header input:focus { outline: none; border-color: #4caf50; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #e0e0e0; }
         th { background: #f5f5f5; }
@@ -103,7 +107,10 @@
                     <div class="stat-card"><div class="number" id="disabledUsers">0</div><div class="label">禁用用户</div></div>
                 </div>
                 <div class="card">
-                    <h2>用户列表</h2>
+                    <div class="card-header">
+                        <h2>用户列表</h2>
+                        <input type="text" id="userSearchInput" placeholder="搜索邮箱..." oninput="filterUsers()">
+                    </div>
                     <table><thead><tr><th>邮箱</th><th>注册时间</th><th>最近登录</th><th>状态</th><th>操作</th></tr></thead><tbody id="usersTableBody"></tbody></table>
                 </div>
             </div>
@@ -158,17 +165,35 @@
         }
         async function adminLogout() { await fetch('/api/admin/logout', {method:'POST'}); location.reload(); }
         function switchTab(tab) { document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active')); event.target.classList.add('active'); document.getElementById(tab+'Panel').classList.add('active'); }
+        
+        let allUsers = []; // 保存所有用户数据
+        
         async function loadUsers() {
             const res = await fetch('/api/admin/users');
             const data = await res.json();
             if (data.success) {
-                const users = data.users;
-                document.getElementById('totalUsers').textContent = users.length;
-                document.getElementById('activeUsers').textContent = users.filter(u=>u['状态']==='正常').length;
-                document.getElementById('disabledUsers').textContent = users.filter(u=>u['状态']==='禁用').length;
-                document.getElementById('usersTableBody').innerHTML = users.map(u=>`<tr><td><a href="/superadmin/user/${encodeURIComponent(u['邮箱'])}" class="email-link">${u['邮箱']}</a></td><td>${u['注册时间']}</td><td>${u['最近登录时间']||'从未登录'}</td><td class="${u['状态']==='正常'?'status-normal':'status-disabled'}">${u['状态']}</td><td><button class="btn ${u['状态']==='正常'?'btn-warning':'btn-success'}" onclick="toggleStatus('${u['邮箱']}','${u['状态']==='正常'?'禁用':'正常'}')">${u['状态']==='正常'?'禁用':'启用'}</button> <button class="btn btn-danger" onclick="deleteUser('${u['邮箱']}')">删除</button></td></tr>`).join('');
+                allUsers = data.users;
+                renderUsers(allUsers);
             }
         }
+        
+        function renderUsers(users) {
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            document.getElementById('activeUsers').textContent = allUsers.filter(u=>u['状态']==='正常').length;
+            document.getElementById('disabledUsers').textContent = allUsers.filter(u=>u['状态']==='禁用').length;
+            document.getElementById('usersTableBody').innerHTML = users.map(u=>`<tr><td><a href="/superadmin/user/${encodeURIComponent(u['邮箱'])}" class="email-link">${u['邮箱']}</a></td><td>${u['注册时间']}</td><td>${u['最近登录时间']||'从未登录'}</td><td class="${u['状态']==='正常'?'status-normal':'status-disabled'}">${u['状态']}</td><td><button class="btn ${u['状态']==='正常'?'btn-warning':'btn-success'}" onclick="toggleStatus('${u['邮箱']}','${u['状态']==='正常'?'禁用':'正常'}')">${u['状态']==='正常'?'禁用':'启用'}</button> <button class="btn btn-danger" onclick="deleteUser('${u['邮箱']}')">删除</button></td></tr>`).join('');
+        }
+        
+        function filterUsers() {
+            const keyword = document.getElementById('userSearchInput').value.trim().toLowerCase();
+            if (!keyword) {
+                renderUsers(allUsers);
+                return;
+            }
+            const filtered = allUsers.filter(u => u['邮箱'].toLowerCase().includes(keyword));
+            renderUsers(filtered);
+        }
+        
         async function toggleStatus(email, status) { await fetch(`/api/admin/users/${email}/status`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status})}); loadUsers(); }
         async function deleteUser(email) { if(confirm(`确定删除 ${email}？`)) { await fetch(`/api/admin/users/${email}`, {method:'DELETE'}); loadUsers(); } }
         async function loadSMTPConfig() {
@@ -193,6 +218,25 @@
             const msg = document.getElementById('testMessage'); msg.textContent = data.message; msg.className = 'message '+(data.success?'success':'error'); setTimeout(()=>msg.className='message', 3000);
         }
         document.getElementById('loginPassword').addEventListener('keypress', e => { if(e.key==='Enter') adminLogin(); });
+        
+        // 页面加载时检查登录状态
+        async function checkLoginStatus() {
+            try {
+                const res = await fetch('/api/admin/check-login');
+                const data = await res.json();
+                if (data.logged_in) {
+                    document.getElementById('loginPage').style.display='none';
+                    document.getElementById('adminPage').classList.add('active');
+                    loadUsers();
+                    loadSMTPConfig();
+                }
+            } catch (error) {
+                console.log('检查登录状态失败:', error);
+            }
+        }
+        
+        // 页面加载时检查
+        checkLoginStatus();
     </script>
 </body>
 </html>

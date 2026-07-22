@@ -66,7 +66,7 @@ def init_csv():
                            '今日文档时长(分钟)', '今日娱乐时长(分钟)', '今日产品时长(分钟)',
                            '今日会议时长(分钟)', '今日运维时长(分钟)', '今日测试时长(分钟)',
                            '今日数据分析时长(分钟)', '今日其他时长(分钟)',
-                           '今日生成报告数量', '总共生成报告数量'])
+                           '今日记录条数', '总共记录条数'])
 
 def read_users():
     init_csv()
@@ -154,8 +154,8 @@ def init_user_detail(email):
         '今日测试时长(分钟)': 0,
         '今日数据分析时长(分钟)': 0,
         '今日其他时长(分钟)': 0,
-        '今日生成报告数量': 0,
-        '总共生成报告数量': 0
+        '今日记录条数': 0,
+        '总共记录条数': 0
     }
     detail_data.append(new_detail)
     write_detail_data(detail_data)
@@ -275,8 +275,8 @@ def update_detail_data_on_login(email):
             d['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
             for wt in WORK_TYPES:
                 d[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
-            d['今日生成报告数量'] = stats['today_reports']
-            d['总共生成报告数量'] = stats['total_reports']
+            d['今日记录条数'] = stats['today_reports']
+            d['总共记录条数'] = stats['total_reports']
             break
     
     write_detail_data(detail_data)
@@ -653,6 +653,27 @@ def get_user_records(email):
     
     return jsonify({'success': True, 'records': records})
 
+@app.route('/api/user/report-generated', methods=['POST'])
+def report_generated():
+    """记录报告生成事件"""
+    data = request.json
+    email = data.get('email', '').strip()
+    
+    if not email:
+        return jsonify({'success': False, 'message': '缺少邮箱参数'})
+    
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    # 更新用户详情中的记录数量
+    user_details = load_user_details()
+    if email in user_details:
+        user_details[email]['今日记录条数'] = str(int(user_details[email].get('今日记录条数', '0')) + 1)
+        user_details[email]['总共记录条数'] = str(int(user_details[email].get('总共记录条数', '0')) + 1)
+        save_user_details(user_details)
+    
+    return jsonify({'success': True, 'message': '报告生成记录已保存'})
+
 # ============ 管理员API ============
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
@@ -665,6 +686,11 @@ def admin_login():
 def admin_logout():
     session.pop('admin_logged_in', None)
     return jsonify({'success': True})
+
+@app.route('/api/admin/check-login', methods=['GET'])
+def admin_check_login():
+    """检查管理员登录状态"""
+    return jsonify({'logged_in': session.get('admin_logged_in', False)})
 
 @app.route('/api/admin/users', methods=['GET'])
 def admin_get_users():
@@ -747,8 +773,8 @@ def admin_get_user_detail(email):
     user_detail['今日专注时长(分钟)'] = round(stats['today_focus_minutes'], 1)
     for wt in WORK_TYPES:
         user_detail[f'今日{wt}时长(分钟)'] = round(stats['today_type_minutes'][wt], 1)
-    user_detail['今日生成报告数量'] = stats['today_reports']
-    user_detail['总共生成报告数量'] = stats['total_reports']
+    user_detail['今日记录条数'] = stats['today_reports']
+    user_detail['总共记录条数'] = stats['total_reports']
     
     return jsonify({'success': True, 'user': user_detail})
 
