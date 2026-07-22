@@ -76,6 +76,52 @@
         .toggle-password:hover {
             color: #4caf50;
         }
+        
+        /* 安装包管理样式 */
+        .package-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.2s;
+        }
+        .package-item:hover {
+            background: #f9f9f9;
+        }
+        .package-item:last-child {
+            border-bottom: none;
+        }
+        .package-info {
+            flex: 1;
+        }
+        .package-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .package-meta {
+            font-size: 12px;
+            color: #999;
+            display: flex;
+            gap: 15px;
+        }
+        .package-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .package-actions .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .current-version {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -98,6 +144,7 @@
             <div class="tabs">
                 <div class="tab active" onclick="switchTab('users')">用户管理</div>
                 <div class="tab" onclick="switchTab('smtp')">SMTP配置</div>
+                <div class="tab" onclick="switchTab('packages')">管理安装包</div>
             </div>
             
             <div id="usersPanel" class="panel active">
@@ -139,6 +186,26 @@
                     <button class="btn btn-info" onclick="testEmail()">发送测试邮件</button>
                 </div>
             </div>
+            
+            <div id="packagesPanel" class="panel">
+                <div class="card">
+                    <h2>上传安装包</h2>
+                    <div id="uploadMessage" class="message"></div>
+                    <div class="form-group">
+                        <label>选择安装包文件</label>
+                        <input type="file" id="packageFile" accept=".exe,.zip,.rar,.7z">
+                    </div>
+                    <div class="form-group">
+                        <label>版本说明（可选）</label>
+                        <input type="text" id="packageNote" placeholder="例如：修复了xxx问题">
+                    </div>
+                    <button class="btn btn-success" onclick="uploadPackage()">上传安装包</button>
+                </div>
+                <div class="card">
+                    <h2>已上传的安装包</h2>
+                    <div id="packageList"></div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -160,7 +227,7 @@
         async function adminLogin() {
             const res = await fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:document.getElementById('loginUsername').value, password:document.getElementById('loginPassword').value})});
             const data = await res.json();
-            if (data.success) { document.getElementById('loginPage').style.display='none'; document.getElementById('adminPage').classList.add('active'); loadUsers(); loadSMTPConfig(); }
+            if (data.success) { document.getElementById('loginPage').style.display='none'; document.getElementById('adminPage').classList.add('active'); loadUsers(); loadSMTPConfig(); loadPackages(); }
             else document.getElementById('loginError').textContent = data.message;
         }
         async function adminLogout() { await fetch('/api/admin/logout', {method:'POST'}); location.reload(); }
@@ -219,6 +286,112 @@
         }
         document.getElementById('loginPassword').addEventListener('keypress', e => { if(e.key==='Enter') adminLogin(); });
         
+        // 安装包管理功能
+        async function loadPackages() {
+            const res = await fetch('/api/admin/packages');
+            const data = await res.json();
+            if (data.success) {
+                renderPackages(data.packages, data.current_version);
+            }
+        }
+        
+        function renderPackages(packages, currentVersion) {
+            const container = document.getElementById('packageList');
+            if (packages.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">暂无安装包</p>';
+                return;
+            }
+            
+            container.innerHTML = packages.map(pkg => `
+                <div class="package-item">
+                    <div class="package-info">
+                        <div class="package-name">
+                            ${pkg.filename}
+                            ${pkg.filename === currentVersion ? '<span class="current-version">当前版本</span>' : ''}
+                        </div>
+                        <div class="package-meta">
+                            <span>📦 ${(pkg.size / 1024 / 1024).toFixed(2)} MB</span>
+                            <span>📅 ${new Date(pkg.upload_time).toLocaleString()}</span>
+                            ${pkg.note ? `<span>📝 ${pkg.note}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="package-actions">
+                        ${pkg.filename !== currentVersion ? `<button class="btn btn-success" onclick="setCurrentPackage('${pkg.filename}')">设为当前版本</button>` : ''}
+                        <button class="btn btn-info" onclick="downloadPackage('${pkg.filename}')">下载</button>
+                        <button class="btn btn-danger" onclick="deletePackage('${pkg.filename}')">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function uploadPackage() {
+            const fileInput = document.getElementById('packageFile');
+            const note = document.getElementById('packageNote').value;
+            const msg = document.getElementById('uploadMessage');
+            
+            if (!fileInput.files[0]) {
+                msg.textContent = '请选择文件';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 3000);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('note', note);
+            
+            try {
+                const res = await fetch('/api/admin/packages/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                msg.textContent = data.message;
+                msg.className = 'message ' + (data.success ? 'success' : 'error');
+                setTimeout(() => msg.className = 'message', 3000);
+                
+                if (data.success) {
+                    fileInput.value = '';
+                    document.getElementById('packageNote').value = '';
+                    loadPackages();
+                }
+            } catch (error) {
+                msg.textContent = '上传失败';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 3000);
+            }
+        }
+        
+        async function setCurrentPackage(filename) {
+            const res = await fetch('/api/admin/packages/set-current', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filename})
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadPackages();
+            }
+            alert(data.message);
+        }
+        
+        async function downloadPackage(filename) {
+            window.open(`/download/${filename}`, '_blank');
+        }
+        
+        async function deletePackage(filename) {
+            if (!confirm(`确定要删除 ${filename} 吗？`)) return;
+            
+            const res = await fetch(`/api/admin/packages/${filename}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadPackages();
+            }
+            alert(data.message);
+        }
+        
         // 页面加载时检查登录状态
         async function checkLoginStatus() {
             try {
@@ -229,6 +402,7 @@
                     document.getElementById('adminPage').classList.add('active');
                     loadUsers();
                     loadSMTPConfig();
+                    loadPackages();
                 }
             } catch (error) {
                 console.log('检查登录状态失败:', error);

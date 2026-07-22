@@ -345,6 +345,11 @@ def send_email(to_email, subject, content):
 def index():
     return send_from_directory('static', 'index.html')
 
+@app.route('/admin')
+def admin_redirect():
+    """重定向到管理后台"""
+    return redirect('/superadmin')
+
 @app.route('/login')
 def login_page():
     return send_from_directory('static', 'login.html')
@@ -1075,6 +1080,104 @@ def admin_get_user_detail(email):
     user_detail['总共生成报告数'] = stats['total_reports']
     
     return jsonify({'success': True, 'user': user_detail})
+
+# ============ 安装包管理接口 ============
+@app.route('/api/admin/packages', methods=['GET'])
+def admin_get_packages():
+    """获取安装包列表"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    files_info = load_files_info()
+    return jsonify({
+        'success': True,
+        'packages': files_info.get('files', []),
+        'current_version': files_info.get('current_version')
+    })
+
+@app.route('/api/admin/packages/upload', methods=['POST'])
+def admin_upload_package():
+    """上传安装包"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': '没有文件'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': '未选择文件'})
+    
+    if not allowed_file(file.filename):
+        return jsonify({'success': False, 'message': '不支持的文件类型'})
+    
+    filename = secure_filename(file.filename) or f"package_{datetime.now().strftime('%Y%m%d_%H%M%S')}.exe"
+    name, ext = os.path.splitext(filename)
+    filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
+    
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    
+    note = request.form.get('note', '')
+    
+    files_info = load_files_info()
+    files_info['files'].append({
+        'filename': filename,
+        'original_name': file.filename,
+        'size': os.path.getsize(filepath),
+        'upload_time': datetime.now().isoformat(),
+        'path': filepath,
+        'note': note
+    })
+    
+    if len(files_info['files']) == 1:
+        files_info['current_version'] = filename
+    
+    save_files_info(files_info)
+    
+    return jsonify({'success': True, 'message': '上传成功', 'filename': filename})
+
+@app.route('/api/admin/packages/set-current', methods=['POST'])
+def admin_set_current_package():
+    """设置当前安装包版本"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    data = request.json
+    filename = data.get('filename')
+    
+    files_info = load_files_info()
+    if not any(f['filename'] == filename for f in files_info['files']):
+        return jsonify({'success': False, 'message': '文件不存在'})
+    
+    files_info['current_version'] = filename
+    save_files_info(files_info)
+    
+    return jsonify({'success': True, 'message': '已设置为当前版本'})
+
+@app.route('/api/admin/packages/<filename>', methods=['DELETE'])
+def admin_delete_package(filename):
+    """删除安装包"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    files_info = load_files_info()
+    file_to_delete = next((f for f in files_info['files'] if f['filename'] == filename), None)
+    
+    if not file_to_delete:
+        return jsonify({'success': False, 'message': '文件不存在'})
+    
+    if os.path.exists(file_to_delete['path']):
+        os.remove(file_to_delete['path'])
+    
+    files_info['files'] = [f for f in files_info['files'] if f['filename'] != filename]
+    
+    if files_info['current_version'] == filename:
+        files_info['current_version'] = files_info['files'][-1]['filename'] if files_info['files'] else None
+    
+    save_files_info(files_info)
+    
+    return jsonify({'success': True, 'message': '删除成功'})
 
 if __name__ == '__main__':
     init_csv()
