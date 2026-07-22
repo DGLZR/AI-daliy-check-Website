@@ -37,7 +37,7 @@
         .stat-card .unit { font-size: 14px; color: #666; }
         .stat-card .label { color: #555; margin-top: 8px; font-size: 14px; }
         
-        .type-breakdown { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .type-breakdown { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
         .type-breakdown h2 { color: #2e7d32; margin-bottom: 20px; }
         
         .type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
@@ -45,15 +45,15 @@
         .type-item .type-name { font-size: 14px; color: #666; margin-bottom: 5px; }
         .type-item .type-value { font-size: 20px; font-weight: bold; color: #333; }
         
-        .report-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-top: 30px; }
-        .report-section h2 { color: #2e7d32; margin-bottom: 20px; }
+        .report-stats-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .report-stats-section h2 { color: #2e7d32; margin-bottom: 20px; }
         .report-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
         .report-card { background: linear-gradient(135deg, #fff3e0, #ffe0b2); padding: 20px; border-radius: 12px; text-align: center; }
         .report-card .number { font-size: 36px; font-weight: bold; color: #e65100; }
         .report-card .label { color: #666; margin-top: 8px; }
         
         /* 时间线模块样式 */
-        .timeline-section { margin-top: 30px; }
+        .timeline-section { margin-bottom: 30px; }
         .timeline-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px; }
         .timeline-card h2 { color: #2e7d32; margin-bottom: 20px; font-size: 18px; }
         
@@ -108,6 +108,65 @@
         .timeline-tag.time { background: transparent; color: #ccc; }
         
         .empty-state { text-align: center; padding: 40px; color: #ccc; font-size: 16px; }
+        
+        /* 历史报告模块样式 */
+        .history-reports { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
+        .history-reports h2 { color: #2e7d32; margin-bottom: 20px; }
+        
+        .report-filter { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .report-filter .type-group { display: flex; gap: 0; }
+        .report-filter .type-btn { padding: 8px 16px; background: white; border: 1px solid #e5e7eb; cursor: pointer; font-size: 13px; transition: all 0.3s; }
+        .report-filter .type-btn:first-child { border-radius: 6px 0 0 6px; }
+        .report-filter .type-btn:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+        .report-filter .type-btn.active { background: #16a34a; color: white; border-color: #16a34a; }
+        .report-filter .type-btn:hover:not(.active) { background: #f9fafb; }
+        .report-filter input[type="text"] { padding: 8px 15px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; width: 200px; }
+        .report-filter input[type="date"] { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+        
+        .report-list { margin-top: 15px; }
+        .report-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        .report-item:hover { background: #f9f9f9; }
+        .report-item:last-child { border-bottom: none; }
+        .report-info { flex: 1; }
+        .report-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 5px; }
+        .report-meta { display: flex; gap: 15px; font-size: 12px; color: #999; }
+        .report-meta span { display: flex; align-items: center; gap: 5px; }
+        .report-actions { display: flex; gap: 8px; }
+        .report-actions .action-btn { padding: 6px 12px; border: 1px solid #e5e7eb; background: white; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+        .report-actions .action-btn:hover { background: #f5f5f5; }
+        .report-actions .action-btn.view { color: #16a34a; border-color: #16a34a; }
+        .report-actions .action-btn.copy { color: #2196f3; border-color: #2196f3; }
+        .report-actions .action-btn.delete { color: #ef5350; border-color: #ef5350; }
+        
+        .report-type-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 10px; }
+        .report-type-tag.日报 { background: #e8f5e9; color: #2e7d32; }
+        .report-type-tag.周报 { background: #e3f2fd; color: #1565c0; }
+        .report-type-tag.月报 { background: #fff3e0; color: #e65100; }
+        
+        .pagination { display: flex; gap: 5px; margin-top: 20px; justify-content: center; align-items: center; }
+        .pagination .page-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .pagination .page-btn.active { background: #16a34a; color: white; border-color: #16a34a; }
+        .pagination .page-btn:hover:not(.active) { background: #f9fafb; }
+        .pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* 报告查看模态框 */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { padding: 20px 25px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { color: #333; font-size: 18px; }
+        .modal-close { width: 32px; height: 32px; border: none; background: #f5f5f5; border-radius: 6px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { background: #e5e7eb; }
+        .modal-body { padding: 25px; overflow-y: auto; flex: 1; }
+        .modal-body .report-content { line-height: 1.8; color: #333; }
+        .modal-body .report-content h1 { font-size: 24px; margin-bottom: 20px; color: #2e7d32; }
+        .modal-body .report-content h2 { font-size: 20px; margin: 20px 0 10px; color: #333; }
+        .modal-body .report-content h3 { font-size: 16px; margin: 15px 0 8px; color: #555; }
+        .modal-body .report-content p { margin-bottom: 12px; }
+        .modal-body .report-content ul, .modal-body .report-content ol { margin-left: 20px; margin-bottom: 12px; }
+        .modal-body .report-content code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+        .modal-body .report-content pre { background: #f5f5f5; padding: 15px; border-radius: 8px; overflow-x: auto; margin-bottom: 12px; }
+        .modal-body .report-content pre code { background: none; padding: 0; }
     </style>
 </head>
 <body>
@@ -186,23 +245,8 @@
             </div>
         </div>
         
-        <div class="report-section">
-            <h2>记录统计</h2>
-            <div class="report-grid">
-                <div class="report-card">
-                    <div class="number">{{ detail.get('今日记录条数', '0') }}</div>
-                    <div class="label">今日记录条数</div>
-                </div>
-                <div class="report-card">
-                    <div class="number">{{ detail.get('总共记录条数', '0') }}</div>
-                    <div class="label">总共记录条数</div>
-                </div>
-            </div>
-        </div>
-        
         <!-- 工作时间线模块 -->
         <div class="timeline-section">
-            <!-- 筛选栏 -->
             <div class="timeline-card">
                 <h2>⏱️ 工作时间线</h2>
                 <div class="filter-bar">
@@ -222,7 +266,6 @@
                 </div>
             </div>
             
-            <!-- 核心数据统计 -->
             <div class="timeline-card">
                 <div class="stats-row">
                     <div class="stat-item">
@@ -240,7 +283,6 @@
                 </div>
             </div>
             
-            <!-- 分类时长分布 -->
             <div class="timeline-card">
                 <h2>📊 分类时长分布</h2>
                 <div class="chart-toggle">
@@ -254,10 +296,56 @@
                 </div>
             </div>
             
-            <!-- 活动时间线 -->
             <div class="timeline-card">
                 <h2>⏱️ 活动时间线</h2>
                 <div id="timelineList" class="timeline-list"></div>
+            </div>
+        </div>
+        
+        <!-- 生成报告记录统计 -->
+        <div class="report-stats-section">
+            <h2>生成报告记录统计</h2>
+            <div class="report-grid">
+                <div class="report-card">
+                    <div class="number">{{ detail.get('今日记录条数', '0') }}</div>
+                    <div class="label">今日生成报告数</div>
+                </div>
+                <div class="report-card">
+                    <div class="number">{{ detail.get('总共记录条数', '0') }}</div>
+                    <div class="label">总共生成报告数</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 查看历史报告 -->
+        <div class="history-reports">
+            <h2>📄 查看历史报告</h2>
+            <div class="report-filter">
+                <div class="type-group">
+                    <button class="type-btn active" onclick="filterReportType('全部', this)">全部</button>
+                    <button class="type-btn" onclick="filterReportType('日报', this)">日报</button>
+                    <button class="type-btn" onclick="filterReportType('周报', this)">周报</button>
+                    <button class="type-btn" onclick="filterReportType('月报', this)">月报</button>
+                </div>
+                <input type="text" id="reportSearch" placeholder="搜索报告..." oninput="filterReports()">
+                <input type="date" id="reportStartDate" onchange="filterReports()">
+                <span>至</span>
+                <input type="date" id="reportEndDate" onchange="filterReports()">
+            </div>
+            <div id="reportList" class="report-list"></div>
+            <div id="reportPagination" class="pagination"></div>
+        </div>
+    </div>
+    
+    <!-- 报告查看模态框 -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">报告标题</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent" class="report-content"></div>
             </div>
         </div>
     </div>
@@ -269,6 +357,13 @@
         let isPercentageMode = false;
         let pieChart = null;
         
+        // 历史报告相关
+        let allReports = [];
+        let filteredReports = [];
+        let currentReportType = '全部';
+        let currentReportPage = 1;
+        const reportsPerPage = 5;
+        
         const TYPE_COLORS = {
             '开发': '#4CAF50', '沟通': '#2196F3', '生活': '#FF9800', '学习': '#9C27B0',
             '设计': '#E91E63', '管理': '#00BCD4', '文档': '#795548', '娱乐': '#F44336',
@@ -276,7 +371,8 @@
             '数据分析': '#FF5722', '其他': '#9E9E9E'
         };
         
-        // 初始化日期
+        // ========== 时间线功能 ==========
+        
         function initDates() {
             const today = new Date();
             const weekAgo = new Date(today);
@@ -291,7 +387,6 @@
             document.getElementById('searchInput').addEventListener('input', loadData);
         }
         
-        // 快速筛选
         function quickFilter(type) {
             const today = new Date();
             const start = document.getElementById('startDate');
@@ -314,23 +409,20 @@
             loadData();
         }
         
-        // 切换图表模式
         function toggleChartMode(mode) {
             isPieMode = mode === 'pie';
             document.getElementById('barChart').classList.toggle('active', !isPieMode);
             document.getElementById('pieChart').classList.toggle('active', isPieMode);
-            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.chart-toggle .toggle-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             updateDistribution();
         }
         
-        // 切换时长/占比模式
         function toggleValueMode() {
             isPercentageMode = !isPercentageMode;
             updateDistribution();
         }
         
-        // 加载数据
         async function loadData() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -346,21 +438,17 @@
             }
         }
         
-        // 更新统计数据
         function updateStats() {
             const records = getFilteredRecords();
             
-            // 记录条数
             document.getElementById('recordCount').textContent = records.length;
             
-            // 专注时长
             let totalMinutes = 0;
             records.forEach(r => {
                 totalMinutes += parseFloat(r['持续时长(分钟)'] || 0);
             });
             document.getElementById('totalDuration').textContent = (totalMinutes / 60).toFixed(1) + 'h';
             
-            // 活跃时段
             if (records.length > 0) {
                 const times = records.map(r => r['时间']).filter(t => t);
                 if (times.length > 0) {
@@ -373,7 +461,6 @@
             }
         }
         
-        // 获取筛选后的记录
         function getFilteredRecords() {
             let records = [...allRecords];
             
@@ -390,7 +477,6 @@
             return records;
         }
         
-        // 更新分类分布
         function updateDistribution() {
             const records = getFilteredRecords();
             const typeHours = {};
@@ -405,7 +491,6 @@
             
             const sorted = Object.entries(typeHours).sort((a, b) => b[1] - a[1]);
             
-            // 更新条形图
             const barContainer = document.getElementById('barChart');
             barContainer.innerHTML = '';
             
@@ -426,7 +511,6 @@
                 `;
             });
             
-            // 更新饼状图
             if (isPieMode && sorted.length > 0) {
                 const ctx = document.getElementById('pieCanvas').getContext('2d');
                 
@@ -465,7 +549,6 @@
             }
         }
         
-        // 更新时间线
         function updateTimeline() {
             const records = getFilteredRecords().reverse();
             const container = document.getElementById('timelineList');
@@ -485,7 +568,6 @@
                 const duration = parseFloat(record['持续时长(分钟)'] || 0);
                 const color = TYPE_COLORS[workType] || '#607D8B';
                 
-                // 计算结束时间
                 let timeRange = '';
                 if (time && duration > 0) {
                     const [h, m, s] = time.split(':').map(Number);
@@ -495,7 +577,6 @@
                     timeRange = `${time.substring(0,5)} — ${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
                 }
                 
-                // 日期显示
                 let dateDisplay = '';
                 if (date) {
                     const parts = date.split('-');
@@ -524,25 +605,180 @@
             });
         }
         
-        // 刷新数据
+        // ========== 历史报告功能 ==========
+        
+        async function loadReports() {
+            const response = await fetch(`/api/user/reports/${encodeURIComponent(email)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                allReports = data.reports;
+                filteredReports = [...allReports];
+                renderReports();
+            }
+        }
+        
+        function filterReportType(type, btn) {
+            currentReportType = type;
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterReports();
+        }
+        
+        function filterReports() {
+            const keyword = document.getElementById('reportSearch').value.trim().toLowerCase();
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            
+            filteredReports = allReports.filter(r => {
+                // 类型筛选
+                if (currentReportType !== '全部' && r.type !== currentReportType) return false;
+                
+                // 关键词搜索
+                if (keyword && !r.title.toLowerCase().includes(keyword)) return false;
+                
+                // 日期筛选
+                if (startDate && r.date < startDate) return false;
+                if (endDate && r.date > endDate) return false;
+                
+                return true;
+            });
+            
+            currentReportPage = 1;
+            renderReports();
+        }
+        
+        function renderReports() {
+            const container = document.getElementById('reportList');
+            const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+            const start = (currentReportPage - 1) * reportsPerPage;
+            const end = start + reportsPerPage;
+            const pageReports = filteredReports.slice(start, end);
+            
+            if (pageReports.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无报告</div>';
+                document.getElementById('reportPagination').innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = pageReports.map(report => `
+                <div class="report-item">
+                    <div class="report-info">
+                        <div class="report-title">
+                            ${report.title}
+                            <span class="report-type-tag ${report.type}">${report.type}</span>
+                        </div>
+                        <div class="report-meta">
+                            <span>📅 ${report.time || report.date}</span>
+                            <span>📝 ${report.word_count || 0} 字</span>
+                        </div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="action-btn view" onclick="viewReport('${report.filename}')">查看</button>
+                        <button class="action-btn copy" onclick="copyReport('${report.filename}')">复制</button>
+                        <button class="action-btn delete" onclick="deleteReport('${report.filename}')">删除</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 渲染分页
+            renderPagination(totalPages);
+        }
+        
+        function renderPagination(totalPages) {
+            const container = document.getElementById('reportPagination');
+            
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let html = `
+                <button class="page-btn" onclick="goToReportPage(${currentReportPage - 1})" ${currentReportPage === 1 ? 'disabled' : ''}>&lt;</button>
+            `;
+            
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="page-btn ${i === currentReportPage ? 'active' : ''}" onclick="goToReportPage(${i})">${i}</button>`;
+            }
+            
+            html += `
+                <button class="page-btn" onclick="goToReportPage(${currentReportPage + 1})" ${currentReportPage === totalPages ? 'disabled' : ''}>&gt;</button>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        function goToReportPage(page) {
+            const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentReportPage = page;
+            renderReports();
+        }
+        
+        async function viewReport(filename) {
+            const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('modalTitle').textContent = data.title;
+                document.getElementById('modalContent').innerHTML = data.content;
+                document.getElementById('reportModal').classList.add('active');
+            }
+        }
+        
+        async function copyReport(filename) {
+            const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                navigator.clipboard.writeText(data.content).then(() => {
+                    alert('已复制到剪贴板');
+                });
+            }
+        }
+        
+        async function deleteReport(filename) {
+            if (!confirm('确定要删除这份报告吗？')) return;
+            
+            const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('删除成功');
+                loadReports();
+            } else {
+                alert('删除失败: ' + data.message);
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('reportModal').classList.remove('active');
+        }
+        
+        // 点击模态框背景关闭
+        document.getElementById('reportModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        
+        // ========== 刷新和导航功能 ==========
+        
         async function refreshData() {
             const btn = document.getElementById('refreshBtn');
             btn.classList.add('spinning');
             btn.textContent = '刷新中...';
             
             try {
-                // 重新加载页面数据
                 await loadData();
+                await loadReports();
                 
-                // 同时刷新用户详情数据
                 const response = await fetch(`/api/admin/user-detail/${encodeURIComponent(email)}`);
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 更新页面上的统计数据
                     const user = data.user;
                     
-                    // 更新今日专注统计卡片
                     const statCards = document.querySelectorAll('.stat-card .number');
                     if (statCards.length >= 3) {
                         statCards[0].textContent = user['今日专注时长(分钟)'] || '0';
@@ -550,7 +786,6 @@
                         statCards[2].textContent = user['总共记录条数'] || '0';
                     }
                     
-                    // 更新各类型时长
                     const typeItems = document.querySelectorAll('.type-item .type-value');
                     const workTypes = ['开发', '沟通', '生活', '学习', '设计', '管理', '文档', '娱乐', '产品', '会议', '运维', '测试', '数据分析', '其他'];
                     typeItems.forEach((item, index) => {
@@ -559,7 +794,6 @@
                         }
                     });
                     
-                    // 更新记录统计卡片
                     const reportCards = document.querySelectorAll('.report-card .number');
                     if (reportCards.length >= 2) {
                         reportCards[0].textContent = user['今日记录条数'] || '0';
@@ -582,19 +816,11 @@
             }
         }
         
-        // 返回管理后台
         function goBack() {
-            // 检查管理后台登录状态
             fetch('/api/admin/check-login')
                 .then(res => res.json())
                 .then(data => {
-                    if (data.logged_in) {
-                        // 已登录，跳转到管理后台
-                        window.location.href = '/superadmin';
-                    } else {
-                        // 未登录，跳转到登录页面
-                        window.location.href = '/superadmin';
-                    }
+                    window.location.href = '/superadmin';
                 })
                 .catch(() => {
                     window.location.href = '/superadmin';
@@ -604,6 +830,7 @@
         // 初始化
         initDates();
         loadData();
+        loadReports();
     </script>
 </body>
 </html>

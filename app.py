@@ -674,6 +674,225 @@ def report_generated():
     
     return jsonify({'success': True, 'message': '报告生成记录已保存'})
 
+# ============ 报告管理接口 ============
+@app.route('/api/user/upload-report', methods=['POST'])
+def upload_report():
+    """上传报告（Markdown格式）"""
+    data = request.json
+    email = data.get('email', '').strip()
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    report_type = data.get('type', '日报').strip()
+    
+    if not email:
+        return jsonify({'success': False, 'message': '缺少邮箱参数'})
+    
+    if not content:
+        return jsonify({'success': False, 'message': '缺少报告内容'})
+    
+    # 如果用户不存在，自动创建
+    if not find_user(email):
+        add_user(email, 'default123')
+    
+    # 获取或创建用户文件夹
+    user_folder = get_user_folder(email)
+    if not os.path.exists(user_folder):
+        create_user_folder(email)
+    
+    # 创建report文件夹
+    report_folder = os.path.join(user_folder, 'report')
+    os.makedirs(report_folder, exist_ok=True)
+    
+    # 生成文件名
+    now = datetime.now()
+    if not title:
+        title = f"{report_type}_{now.strftime('%Y%m%d_%H%M%S')}"
+    
+    # 清理文件名中的非法字符
+    safe_title = "".join(c for c in title if c.isalnum() or c in ('_', '-', ' ')).strip()
+    filename = f"{safe_title}_{now.strftime('%Y%m%d_%H%M%S')}.md"
+    
+    filepath = os.path.join(report_folder, filename)
+    
+    # 添加元信息到报告内容
+    meta_content = f"""# {title}
+
+**报告类型：** {report_type}
+**生成时间：** {now.strftime('%Y-%m-%d %H:%M:%S')}
+**用户邮箱：** {email}
+
+---
+
+{content}
+"""
+    
+    # 保存报告
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(meta_content)
+    
+    # 更新报告计数
+    detail_data = read_detail_data()
+    for d in detail_data:
+        if d['邮箱'] == email:
+            d['今日记录条数'] = str(int(d.get('今日记录条数', '0')) + 1)
+            d['总共记录条数'] = str(int(d.get('总共记录条数', '0')) + 1)
+            break
+    write_detail_data(detail_data)
+    
+    return jsonify({'success': True, 'message': '报告上传成功', 'filename': filename})
+
+@app.route('/api/user/reports/<email>', methods=['GET'])
+def get_user_reports(email):
+    """获取用户报告列表"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    user_folder = get_user_folder(email)
+    report_folder = os.path.join(user_folder, 'report')
+    
+    reports = []
+    if os.path.exists(report_folder):
+        for filename in os.listdir(report_folder):
+            if filename.endswith('.md'):
+                filepath = os.path.join(report_folder, filename)
+                
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # 解析元信息
+                    title = filename.replace('.md', '')
+                    report_type = '日报'
+                    generate_time = ''
+                    word_count = len(content)
+                    date = ''
+                    
+                    lines = content.split('\n')
+                    for line in lines:
+                        if line.startswith('# '):
+                            title = line[2:].strip()
+                        if '**报告类型：**' in line:
+                            report_type = line.split('：')[-1].strip()
+                        if '**生成时间：**' in line:
+                            generate_time = line.split('：')[-1].strip()
+                    
+                    # 格式化时间
+                    if generate_time:
+                        try:
+                            dt = datetime.strptime(generate_time, '%Y-%m-%d %H:%M:%S')
+                            date = dt.strftime('%Y-%m-%d')
+                            today = datetime.now().strftime('%Y-%m-%d')
+                            if dt.strftime('%Y-%m-%d') == today:
+                                generate_time = f"今日 {dt.strftime('%H:%M')}"
+                            else:
+                                generate_time = dt.strftime('%m月%d日 %H:%M')
+                        except:
+                            pass
+                    
+                    reports.append({
+                        'filename': filename,
+                        'title': title,
+                        'type': report_type,
+                        'time': generate_time,
+                        'date': date,
+                        'word_count': word_count,
+                        'status': '已完成'
+                    })
+                except:
+                    pass
+    
+    # 按时间倒序排序
+    reports.sort(key=lambda x: x.get('filename', ''), reverse=True)
+    
+    return jsonify({'success': True, 'reports': reports})
+
+@app.route('/api/user/report/<email>/<filename>', methods=['GET'])
+def get_user_report(email, filename):
+    """获取单个报告内容"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    user_folder = get_user_folder(email)
+    filepath = os.path.join(user_folder, 'report', filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': '报告不存在'})
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 解析标题
+        title = filename.replace('.md', '')
+        for line in content.split('\n'):
+            if line.startswith('# '):
+                title = line[2:].strip()
+                break
+        
+        # 将Markdown转换为简单HTML
+        html_content = markdown_to_html(content)
+        
+        return jsonify({'success': True, 'title': title, 'content': html_content, 'raw': content})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/user/report/<email>/<filename>', methods=['DELETE'])
+def delete_user_report(email, filename):
+    """删除报告"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    user_folder = get_user_folder(email)
+    filepath = os.path.join(user_folder, 'report', filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({'success': False, 'message': '报告不存在'})
+    
+    try:
+        os.remove(filepath)
+        return jsonify({'success': True, 'message': '报告删除成功'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+def markdown_to_html(md_content):
+    """简单的Markdown转HTML"""
+    import re
+    
+    html = md_content
+    
+    # 标题
+    html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
+    html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
+    html = re.sub(r'^# (.+)$', r'<h1>\1</h1>', html, flags=re.MULTILINE)
+    
+    # 粗体
+    html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+    
+    # 斜体
+    html = re.sub(r'\*(.+?)\*', r'<em>\1</em>', html)
+    
+    # 代码块
+    html = re.sub(r'```[\s\S]*?```', lambda m: f'<pre><code>{m.group(0)[3:-3]}</code></pre>', html)
+    
+    # 行内代码
+    html = re.sub(r'`(.+?)`', r'<code>\1</code>', html)
+    
+    # 列表
+    html = re.sub(r'^- (.+)$', r'<li>\1</li>', html, flags=re.MULTILINE)
+    html = re.sub(r'^(\d+)\. (.+)$', r'<li>\2</li>', html, flags=re.MULTILINE)
+    
+    # 分隔线
+    html = re.sub(r'^---+$', '<hr>', html, flags=re.MULTILINE)
+    
+    # 段落
+    html = re.sub(r'\n\n', '</p><p>', html)
+    html = f'<p>{html}</p>'
+    
+    # 换行
+    html = html.replace('\n', '<br>')
+    
+    return html
+
 # ============ 管理员API ============
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
