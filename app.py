@@ -667,6 +667,81 @@ def login():
     
     return jsonify({'success': True, 'message': '登录成功'})
 
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    """重置密码"""
+    data = request.json
+    email = data.get('email', '').strip()
+    code = data.get('code', '').strip()
+    new_password = data.get('new_password', '').strip()
+    
+    if not all([email, code, new_password]):
+        return jsonify({'success': False, 'message': '请填写完整信息'})
+    
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': '密码至少需要6位'})
+    
+    if email not in verification_codes:
+        return jsonify({'success': False, 'message': '请先发送验证码'})
+    
+    stored = verification_codes[email]
+    if get_china_time() > stored['expire']:
+        del verification_codes[email]
+        return jsonify({'success': False, 'message': '验证码已过期'})
+    if stored['code'] != code:
+        return jsonify({'success': False, 'message': '验证码错误'})
+    
+    user = find_user(email)
+    if not user:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    # 更新密码
+    update_user(email, {'密码': new_password})
+    del verification_codes[email]
+    
+    return jsonify({'success': True, 'message': '密码已重置，请重新登录'})
+
+@app.route('/api/user/change-password', methods=['POST'])
+def change_password():
+    """修改密码（需要登录状态）"""
+    data = request.json
+    email = data.get('email', '').strip()
+    current_password = data.get('current_password', '').strip()
+    new_password = data.get('new_password', '').strip()
+    
+    # 验证登录状态
+    if session.get('logged_user') != email:
+        return jsonify({'success': False, 'message': '未登录'}), 401
+    
+    if not all([email, current_password, new_password]):
+        return jsonify({'success': False, 'message': '请填写完整信息'})
+    
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': '新密码至少需要6位'})
+    
+    if current_password == new_password:
+        return jsonify({'success': False, 'message': '新密码不能与当前密码相同'})
+    
+    user = find_user(email)
+    if not user:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    if user['密码'] != current_password:
+        return jsonify({'success': False, 'message': '当前密码错误'})
+    
+    # 更新密码
+    update_user(email, {'密码': new_password})
+    
+    # 同步更新detail_person_data.csv中的密码
+    detail_data = read_detail_data()
+    for d in detail_data:
+        if d['邮箱'] == email:
+            d['密码'] = new_password
+            break
+    write_detail_data(detail_data)
+    
+    return jsonify({'success': True, 'message': '密码修改成功'})
+
 @app.route('/api/logout', methods=['POST'])
 def logout():
     """用户登出"""
@@ -1237,6 +1312,39 @@ def admin_get_user_detail(email):
     user_detail['总共生成报告数'] = stats['total_reports']
     
     return jsonify({'success': True, 'user': user_detail})
+
+@app.route('/api/admin/change-user-password', methods=['POST'])
+def admin_change_user_password():
+    """管理员修改用户密码"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    
+    data = request.json
+    email = data.get('email', '').strip()
+    new_password = data.get('new_password', '').strip()
+    
+    if not email or not new_password:
+        return jsonify({'success': False, 'message': '请填写完整信息'})
+    
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': '密码至少需要6位'})
+    
+    user = find_user(email)
+    if not user:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    # 更新users.csv中的密码
+    update_user(email, {'密码': new_password})
+    
+    # 同步更新detail_person_data.csv中的密码
+    detail_data = read_detail_data()
+    for d in detail_data:
+        if d['邮箱'] == email:
+            d['密码'] = new_password
+            break
+    write_detail_data(detail_data)
+    
+    return jsonify({'success': True, 'message': '密码修改成功'})
 
 # ============ 安装包管理接口 ============
 @app.route('/api/admin/packages', methods=['GET'])

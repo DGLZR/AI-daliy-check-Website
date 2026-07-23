@@ -199,6 +199,10 @@
                     <div class="label">最近登录时间</div>
                     <div class="value">{{ user.get('最近登录时间', '从未登录') }}</div>
                 </div>
+                <div class="info-item change-password-item">
+                    <div class="label">修改密码</div>
+                    <button class="btn change-password-btn" onclick="showChangePasswordModal()">修改密码</button>
+                </div>
                 <div class="storage-item">
                     <div class="label">截图记录存储空间</div>
                     <div class="storage-bar">
@@ -339,6 +343,33 @@
             </div>
             <div class="modal-body">
                 <div id="modalContent" class="report-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 修改密码模态框 -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="modal-close" onclick="closeChangePasswordModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>当前密码</label>
+                    <input type="password" id="currentPassword" placeholder="请输入当前密码">
+                </div>
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newPassword" placeholder="请输入新密码（至少6位）">
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
+                </div>
+                <div id="changePasswordError" class="error-msg"></div>
+                <div id="changePasswordSuccess" class="success-msg"></div>
+                <button class="btn btn-success" onclick="changePassword()" style="width: 100%; margin-top: 15px;">确认修改</button>
             </div>
         </div>
     </div>
@@ -578,6 +609,75 @@
                 }
             } catch (error) {
                 console.log('获取存储信息失败:', error);
+            }
+        }
+        
+        // 修改密码相关
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('active');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('changePasswordError').textContent = '';
+            document.getElementById('changePasswordSuccess').textContent = '';
+        }
+        
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('active');
+        }
+        
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorEl = document.getElementById('changePasswordError');
+            const successEl = document.getElementById('changePasswordSuccess');
+            
+            errorEl.textContent = '';
+            successEl.textContent = '';
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                errorEl.textContent = '请填写完整信息';
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                errorEl.textContent = '新密码至少需要6位';
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = '两次输入的新密码不一致';
+                return;
+            }
+            
+            if (currentPassword === newPassword) {
+                errorEl.textContent = '新密码不能与当前密码相同';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    successEl.textContent = '密码修改成功！';
+                    setTimeout(() => {
+                        closeChangePasswordModal();
+                    }, 1500);
+                } else {
+                    errorEl.textContent = data.message;
+                }
+            } catch (error) {
+                errorEl.textContent = '修改失败，请稍后重试';
             }
         }
         
