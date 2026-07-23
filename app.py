@@ -1459,6 +1459,50 @@ def admin_delete_package(filename):
     
     return jsonify({'success': True, 'message': '删除成功'})
 
+
+# ============ 版本检查接口 ============
+@app.route('/api/check-update', methods=['GET'])
+def check_update():
+    """检查更新"""
+    current_version = request.args.get('current_version', 'v0.25').strip()
+    
+    # 从配置文件读取最新版本
+    config = load_config()
+    latest_version = config.get('site', {}).get('version', 'v0.25')
+    update_log = config.get('site', {}).get('update_log', '修复了一些问题，优化了性能。')
+    
+    # 比较版本号（简单的字符串比较，去掉v前缀）
+    current_ver = current_version.replace('v', '').split('.')
+    latest_ver = latest_version.replace('v', '').split('.')
+    
+    has_update = False
+    for i in range(max(len(current_ver), len(latest_ver))):
+        cur = int(current_ver[i]) if i < len(current_ver) else 0
+        lat = int(latest_ver[i]) if i < len(latest_ver) else 0
+        if lat > cur:
+            has_update = True
+            break
+        elif cur > lat:
+            has_update = False
+            break
+    
+    # 获取下载链接
+    download_url = ''
+    if has_update:
+        files_info = load_files_info()
+        if files_info.get('current_version'):
+            download_url = f"/download/{files_info['current_version']}"
+    
+    return jsonify({
+        'success': True,
+        'has_update': has_update,
+        'current_version': current_version,
+        'latest_version': latest_version,
+        'update_log': update_log,
+        'download_url': download_url
+    })
+
+
 if __name__ == '__main__':
     init_csv()
     app.run(host='0.0.0.0', port=5000, debug=True)
