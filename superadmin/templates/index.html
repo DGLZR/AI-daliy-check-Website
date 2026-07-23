@@ -122,6 +122,15 @@
             font-size: 11px;
             font-weight: 600;
         }
+        .version-tag {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
@@ -192,12 +201,20 @@
                     <h2>上传安装包</h2>
                     <div id="uploadMessage" class="message"></div>
                     <div class="form-group">
-                        <label>选择安装包文件</label>
-                        <input type="file" id="packageFile" accept=".exe,.zip,.rar,.7z">
+                        <label>文件名</label>
+                        <input type="text" id="packageName" placeholder="例如：AI工作日报助手">
                     </div>
                     <div class="form-group">
-                        <label>版本说明（可选）</label>
+                        <label>版本号（只能是数字）</label>
+                        <input type="text" id="packageVersion" placeholder="例如：1.0.0" pattern="[0-9.]+">
+                    </div>
+                    <div class="form-group">
+                        <label>版本说明</label>
                         <input type="text" id="packageNote" placeholder="例如：修复了xxx问题">
+                    </div>
+                    <div class="form-group">
+                        <label>选择安装包文件</label>
+                        <input type="file" id="packageFile" accept=".exe,.zip,.rar,.7z">
                     </div>
                     <button class="btn btn-success" onclick="uploadPackage()">上传安装包</button>
                 </div>
@@ -306,7 +323,8 @@
                 <div class="package-item">
                     <div class="package-info">
                         <div class="package-name">
-                            ${pkg.filename}
+                            ${pkg.display_name || pkg.filename}
+                            ${pkg.version ? `<span class="version-tag">v${pkg.version}</span>` : ''}
                             ${pkg.filename === currentVersion ? '<span class="current-version">当前版本</span>' : ''}
                         </div>
                         <div class="package-meta">
@@ -326,8 +344,31 @@
         
         async function uploadPackage() {
             const fileInput = document.getElementById('packageFile');
-            const note = document.getElementById('packageNote').value;
+            const name = document.getElementById('packageName').value.trim();
+            const version = document.getElementById('packageVersion').value.trim();
+            const note = document.getElementById('packageNote').value.trim();
             const msg = document.getElementById('uploadMessage');
+            
+            if (!name) {
+                msg.textContent = '请输入文件名';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 3000);
+                return;
+            }
+            
+            if (!version) {
+                msg.textContent = '请输入版本号';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 3000);
+                return;
+            }
+            
+            if (!/^[0-9.]+$/.test(version)) {
+                msg.textContent = '版本号只能是数字和点';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 3000);
+                return;
+            }
             
             if (!fileInput.files[0]) {
                 msg.textContent = '请选择文件';
@@ -338,6 +379,8 @@
             
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
+            formData.append('name', name);
+            formData.append('version', version);
             formData.append('note', note);
             
             try {
@@ -352,6 +395,8 @@
                 
                 if (data.success) {
                     fileInput.value = '';
+                    document.getElementById('packageName').value = '';
+                    document.getElementById('packageVersion').value = '';
                     document.getElementById('packageNote').value = '';
                     loadPackages();
                 }

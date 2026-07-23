@@ -1376,19 +1376,34 @@ def admin_upload_package():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'message': '不支持的文件类型'})
     
-    filename = secure_filename(file.filename) or f"package_{get_china_time_str('%Y%m%d_%H%M%S')}.exe"
-    name, ext = os.path.splitext(filename)
-    filename = f"{name}_{get_china_time_str('%Y%m%d_%H%M%S')}{ext}"
+    name = request.form.get('name', '').strip()
+    version = request.form.get('version', '').strip()
+    note = request.form.get('note', '').strip()
+    
+    if not name:
+        return jsonify({'success': False, 'message': '请输入文件名'})
+    
+    if not version:
+        return jsonify({'success': False, 'message': '请输入版本号'})
+    
+    import re
+    if not re.match(r'^[0-9.]+$', version):
+        return jsonify({'success': False, 'message': '版本号只能是数字和点'})
+    
+    # 使用用户提供的文件名和版本号构建存储文件名
+    safe_name = secure_filename(name) or f"package_{get_china_time_str('%Y%m%d_%H%M%S')}"
+    _, ext = os.path.splitext(file.filename)
+    filename = f"{safe_name}_v{version}_{get_china_time_str('%Y%m%d_%H%M%S')}{ext}"
     
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
-    
-    note = request.form.get('note', '')
     
     files_info = load_files_info()
     files_info['files'].append({
         'filename': filename,
         'original_name': file.filename,
+        'display_name': name,
+        'version': version,
         'size': os.path.getsize(filepath),
         'upload_time': get_china_time().isoformat(),
         'path': filepath,

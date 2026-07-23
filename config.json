@@ -2,7 +2,7 @@
   "site": {
     "name": "绿豆蛙日报助手",
     "description": "自动截图分析工作内容，智能生成工作日报，告别加班写周报",
-    "version": "v1.0.0",
+    "version": "v0.3",
     "author": "绿豆蛙团队"
   },
   "server": {
