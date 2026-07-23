@@ -1463,35 +1463,44 @@ def admin_delete_package(filename):
 # ============ 版本检查接口 ============
 @app.route('/api/check-update', methods=['GET'])
 def check_update():
-    """检查更新"""
-    current_version = request.args.get('current_version', 'v0.25').strip()
+    """检查更新 - 只检查当前版本"""
+    current_version = request.args.get('current_version', 'v0.0').strip()
     
-    # 从配置文件读取最新版本
-    config = load_config()
-    latest_version = config.get('site', {}).get('version', 'v0.25')
-    update_log = config.get('site', {}).get('update_log', '修复了一些问题，优化了性能。')
-    
-    # 比较版本号（简单的字符串比较，去掉v前缀）
-    current_ver = current_version.replace('v', '').split('.')
-    latest_ver = latest_version.replace('v', '').split('.')
-    
-    has_update = False
-    for i in range(max(len(current_ver), len(latest_ver))):
-        cur = int(current_ver[i]) if i < len(current_ver) else 0
-        lat = int(latest_ver[i]) if i < len(latest_ver) else 0
-        if lat > cur:
-            has_update = True
-            break
-        elif cur > lat:
-            has_update = False
-            break
-    
-    # 获取下载链接
+    # 从 files_info.json 读取当前版本的版本号
+    files_info = load_files_info()
+    latest_version = None
+    update_log = ''
     download_url = ''
-    if has_update:
-        files_info = load_files_info()
-        if files_info.get('current_version'):
-            download_url = f"/download/{files_info['current_version']}"
+    
+    if files_info.get('current_version'):
+        # 找到当前版本的文件信息
+        for f in files_info.get('files', []):
+            if f['filename'] == files_info['current_version']:
+                ver = f.get('version', '0')
+                latest_version = f'v{ver}' if not ver.startswith('v') else ver
+                update_log = f.get('note', '')
+                download_url = f"/download/{f['filename']}"
+                break
+    
+    # 如果没有当前版本，返回无更新
+    if not latest_version:
+        return jsonify({
+            'success': True,
+            'has_update': False,
+            'current_version': current_version,
+            'latest_version': current_version,
+            'update_log': '',
+            'download_url': ''
+        })
+    
+    # 比较版本号
+    def parse_version(v):
+        try:
+            return float(v.replace('v', ''))
+        except:
+            return 0.0
+    
+    has_update = parse_version(latest_version) > parse_version(current_version)
     
     return jsonify({
         'success': True,
@@ -1499,7 +1508,7 @@ def check_update():
         'current_version': current_version,
         'latest_version': latest_version,
         'update_log': update_log,
-        'download_url': download_url
+        'download_url': download_url if has_update else ''
     })
 
 
