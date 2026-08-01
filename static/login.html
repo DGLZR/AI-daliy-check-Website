@@ -228,6 +228,16 @@
         .eye-btn { color: var(--ink-faint); cursor: pointer; font-size: 0.95rem; padding: 6px; transition: color 0.25s var(--ease); }
         .eye-btn:hover { color: var(--green); }
 
+        .forgot-row { display: flex; justify-content: flex-end; margin: -6px 0 16px; }
+        .forgot-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.82rem; font-weight: 600; color: var(--ink-faint);
+            transition: color 0.25s var(--ease); position: relative;
+        }
+        .forgot-link::after { content:''; position:absolute; left:0; right:0; bottom:-3px; height:1.5px; background:var(--green); transform:scaleX(0); transform-origin:right; transition:transform 0.3s var(--ease); }
+        .forgot-link:hover { color: var(--green-deep); }
+        .forgot-link:hover::after { transform:scaleX(1); transform-origin:left; }
+
         /* 验证码行 */
         .code-flex { display: flex; gap: 10px; }
         .code-flex .field-box { flex: 1; }
@@ -270,6 +280,117 @@
         .form-foot a { color: var(--green-deep); font-weight: 600; border-bottom: 1px solid transparent; transition: border-color 0.25s var(--ease); }
         .form-foot a:hover { border-bottom-color: var(--green-deep); }
 
+        /* ============ 找回密码全屏界面 ============ */
+        .fp-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(160deg, var(--green-dark) 0%, var(--green-mid) 55%, #235c36 100%);
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.45s var(--ease), visibility 0.45s;
+        }
+        .fp-overlay.open { opacity: 1; visibility: visible; }
+
+        .fp-bg { position: absolute; inset: 0; overflow: hidden; }
+        .fp-grid {
+            position: absolute; inset: 0; opacity: 0.5;
+            background-image:
+                linear-gradient(rgba(169,227,75,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(169,227,75,0.05) 1px, transparent 1px);
+            background-size: 52px 52px;
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 80%);
+        }
+        .fp-orb-a { width: 420px; height: 420px; background: rgba(47,158,68,0.5); top: -140px; left: -120px; }
+        .fp-orb-b { width: 340px; height: 340px; background: rgba(169,227,75,0.26); bottom: -120px; right: -100px; animation-delay: -7s; }
+
+        .fp-back {
+            position: absolute; top: 26px; left: 28px; z-index: 5;
+            display: inline-flex; align-items: center; gap: 9px;
+            color: rgba(255,255,255,0.75); font-size: 0.88rem; font-weight: 500;
+            padding: 9px 18px 9px 14px; border-radius: 999px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(8px); transition: all 0.3s var(--ease);
+        }
+        .fp-back i { font-size: 0.8rem; transition: transform 0.3s var(--ease); }
+        .fp-back:hover { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.35); }
+        .fp-back:hover i { transform: translateX(-4px); }
+
+        .fp-wrap { position: relative; z-index: 2; width: 100%; max-width: 460px; padding: 20px; }
+
+        /* 入场编排 */
+        .fp-overlay.open .fp-icon   { animation: fpUp 0.6s var(--ease-out) 0.05s both; }
+        .fp-overlay.open .fp-title  { animation: fpUp 0.6s var(--ease-out) 0.12s both; }
+        .fp-overlay.open .fp-sub    { animation: fpUp 0.6s var(--ease-out) 0.18s both; }
+        .fp-overlay.open .fp-steps  { animation: fpUp 0.6s var(--ease-out) 0.24s both; }
+        .fp-overlay.open .fp-card   { animation: fpUp 0.6s var(--ease-out) 0.30s both; }
+        @keyframes fpUp { from { opacity: 0; transform: translateY(28px);} to { opacity: 1; transform: translateY(0);} }
+
+        .fp-icon {
+            position: relative; width: 76px; height: 76px; margin: 0 auto 22px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(169,227,75,0.14); border: 1px solid rgba(169,227,75,0.3);
+            border-radius: 22px; color: var(--lime); font-size: 1.7rem;
+        }
+        .fp-icon i { animation: keyWiggle 3s ease-in-out infinite; }
+        @keyframes keyWiggle { 0%,100%{transform:rotate(0)} 8%{transform:rotate(-14deg)} 16%{transform:rotate(10deg)} 24%{transform:rotate(0)} }
+        .fp-icon-ring { position: absolute; inset: -8px; border-radius: 28px; border: 1.5px solid rgba(169,227,75,0.35); animation: ringPulse 2.4s ease-out infinite; }
+        @keyframes ringPulse { 0%{transform:scale(.85);opacity:.8} 100%{transform:scale(1.25);opacity:0} }
+
+        .fp-title { font-family: var(--font-display); font-weight: 900; font-size: 1.9rem; color: #fff; text-align: center; letter-spacing: -0.01em; margin-bottom: 8px; }
+        .fp-sub { color: rgba(255,255,255,0.62); font-size: 0.9rem; text-align: center; margin-bottom: 26px; }
+
+        /* 步骤指示器 */
+        .fp-steps { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px; }
+        .fp-step { display: flex; align-items: center; gap: 9px; }
+        .fp-step-dot {
+            width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700;
+            color: rgba(255,255,255,0.5); border: 1.5px solid rgba(255,255,255,0.25);
+            transition: all 0.4s var(--ease);
+        }
+        .fp-step-label { font-size: 0.8rem; color: rgba(255,255,255,0.5); font-weight: 600; transition: color 0.4s var(--ease); }
+        .fp-step.active .fp-step-dot { background: var(--lime); border-color: var(--lime); color: var(--green-dark); box-shadow: 0 0 0 5px rgba(169,227,75,0.18); }
+        .fp-step.active .fp-step-label { color: #fff; }
+        .fp-step.done .fp-step-dot { background: var(--green); border-color: var(--green); color: #fff; }
+        .fp-step-line { width: 46px; height: 2px; background: rgba(255,255,255,0.2); border-radius: 2px; position: relative; overflow: hidden; }
+        .fp-step-line::after { content:''; position:absolute; inset:0; background:var(--lime); transform:scaleX(0); transform-origin:left; transition:transform 0.6s var(--ease); }
+        .fp-step-line.fill::after { transform:scaleX(1); }
+
+        .fp-card {
+            background: var(--paper); border-radius: 22px; padding: 32px 30px 28px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        }
+
+        /* OTP 分段输入 */
+        .otp { display: flex; align-items: center; justify-content: center; gap: 9px; }
+        .otp-gap { width: 14px; }
+        .otp-box {
+            width: 48px; height: 56px; text-align: center;
+            font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color: var(--ink);
+            background: #f7faf7; border: 1.5px solid var(--line); border-radius: 12px;
+            transition: all 0.25s var(--ease); caret-color: var(--green);
+        }
+        .otp-box:focus { outline: none; border-color: var(--green); background: #fff; box-shadow: 0 0 0 4px rgba(47,158,68,0.13); transform: translateY(-2px); }
+        .otp-box.filled { border-color: rgba(47,158,68,0.45); background: rgba(47,158,68,0.06); }
+        .otp.shake .otp-box { animation: shake 0.45s var(--ease); border-color: var(--danger); }
+
+        /* 密码强度计 */
+        .strength { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+        .strength-track { flex: 1; height: 5px; background: #e7efe6; border-radius: 3px; overflow: hidden; }
+        .strength-fill { height: 100%; width: 0; border-radius: 3px; background: var(--danger); transition: width 0.4s var(--ease), background 0.4s var(--ease); }
+        .strength-label { font-size: 0.72rem; font-weight: 700; color: var(--ink-faint); min-width: 52px; text-align: right; transition: color 0.3s var(--ease); }
+
+        /* 成功状态 */
+        .fp-success { display: none; text-align: center; padding: 20px 0; }
+        .fp-success.show { display: block; animation: fpUp 0.5s var(--ease-out) both; }
+        .fp-check { width: 92px; height: 92px; margin: 0 auto 24px; }
+        .fp-check svg { width: 100%; height: 100%; }
+        .fp-check circle { stroke: var(--lime); stroke-width: 2.5; stroke-dasharray: 160; stroke-dashoffset: 160; animation: drawCircle 0.7s var(--ease) forwards; }
+        .fp-check path { stroke: var(--lime); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: drawCheck 0.45s var(--ease) 0.6s forwards; }
+        @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+        .fp-success h3 { font-family: var(--font-display); font-weight: 900; font-size: 1.5rem; color: #fff; margin-bottom: 8px; }
+        .fp-success p { color: rgba(255,255,255,0.62); font-size: 0.9rem; }
+
         /* ============ 响应式 ============ */
         @media (max-width: 1024px) {
             .scene { grid-template-columns: 1fr; }
@@ -283,6 +404,11 @@
             .form-card { padding: 28px 22px 24px; }
             .code-flex { flex-direction: column; }
             .code-send { height: 46px; }
+            .otp { gap: 6px; }
+            .otp-gap { width: 8px; }
+            .otp-box { width: 40px; height: 50px; font-size: 1.05rem; }
+            .fp-card { padding: 26px 20px 22px; }
+            .fp-step-label { display: none; }
         }
     </style>
 </head>
@@ -365,6 +491,11 @@
                                         <i class="fas fa-eye eye-btn" onclick="togglePwd(this, 'loginPassword')"></i>
                                     </div>
                                 </div>
+                                <div class="forgot-row">
+                                    <a href="javascript:void(0)" class="forgot-link" onclick="openForgot()">
+                                        <i class="fas fa-question-circle"></i> 忘记密码？
+                                    </a>
+                                </div>
                                 <button type="button" class="submit-btn" id="loginBtn" onclick="handleLogin()">
                                     <span class="spinner"></span><span class="btn-text">登 录</span>
                                 </button>
@@ -415,6 +546,99 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- ============ 找回密码全屏界面 ============ -->
+    <div class="fp-overlay" id="fpOverlay" aria-hidden="true">
+        <div class="fp-bg">
+            <div class="fp-grid"></div>
+            <div class="orb fp-orb-a"></div>
+            <div class="orb fp-orb-b"></div>
+            <div class="particles" id="fpParticles"></div>
+        </div>
+
+        <button type="button" class="fp-back" onclick="closeForgot()">
+            <i class="fas fa-arrow-left"></i> 返回登录
+        </button>
+
+        <div class="fp-wrap">
+            <!-- 成功状态 -->
+            <div class="fp-success" id="fpSuccess">
+                <div class="fp-check">
+                    <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" fill="none"/><path fill="none" d="M14 27l8 8 16-16"/></svg>
+                </div>
+                <h3>密码重置成功</h3>
+                <p>正在带你回到登录页…</p>
+            </div>
+
+            <!-- 表单状态 -->
+            <div class="fp-main" id="fpMain">
+                <div class="fp-icon">
+                    <i class="fas fa-key"></i>
+                    <span class="fp-icon-ring"></span>
+                </div>
+                <h2 class="fp-title">找回密码</h2>
+                <p class="fp-sub">别担心，跟着绿豆蛙三步找回你的账号</p>
+
+                <!-- 步骤指示器 -->
+                <div class="fp-steps">
+                    <div class="fp-step active" id="fpStep1">
+                        <span class="fp-step-dot">1</span><span class="fp-step-label">验证邮箱</span>
+                    </div>
+                    <div class="fp-step-line" id="fpStepLine"></div>
+                    <div class="fp-step" id="fpStep2">
+                        <span class="fp-step-dot">2</span><span class="fp-step-label">重置密码</span>
+                    </div>
+                </div>
+
+                <div class="fp-card">
+                    <!-- 邮箱 + 发送验证码 -->
+                    <div class="field">
+                        <label class="field-label" for="fpEmail">注册邮箱</label>
+                        <div class="code-flex">
+                            <div class="field-box">
+                                <i class="fas fa-envelope lead"></i>
+                                <input type="email" id="fpEmail" placeholder="you@example.com" autocomplete="email">
+                            </div>
+                            <button type="button" class="code-send" id="fpSendBtn" onclick="fpSendCode()">发送验证码</button>
+                        </div>
+                    </div>
+
+                    <!-- 6 位验证码分段输入 -->
+                    <div class="field">
+                        <label class="field-label">邮箱验证码</label>
+                        <div class="otp" id="fpOtp">
+                            <input type="text" inputmode="numeric" maxlength="1" class="otp-box" data-idx="0">
+                            <input type="text" inputmode="numeric" maxlength="1" class="otp-box" data-idx="1">
+                            <input type="text" inputmode="numeric" maxlength="1" class="otp-box" data-idx="2">
+                            <span class="otp-gap"></span>
+                            <input type="text" inputmode="numeric" maxlength="1" class="otp-box" data-idx="3">
+                            <input type="text" inputmode="numeric" maxlength="1" class="otp-box" data-idx="4">
+                            <input type="text" inputmode="numeric" maxlength="1" class="otp-box" data-idx="5">
+                        </div>
+                    </div>
+
+                    <!-- 新密码 + 强度计 -->
+                    <div class="field">
+                        <label class="field-label" for="fpPassword">新密码</label>
+                        <div class="field-box">
+                            <i class="fas fa-lock lead"></i>
+                            <input type="password" id="fpPassword" placeholder="至少 6 位密码" autocomplete="new-password">
+                            <i class="fas fa-eye eye-btn" onclick="togglePwd(this, 'fpPassword')"></i>
+                        </div>
+                        <div class="strength" id="fpStrength">
+                            <div class="strength-track"><div class="strength-fill" id="fpStrengthFill"></div></div>
+                            <span class="strength-label" id="fpStrengthLabel">密码强度</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="submit-btn" id="fpBtn" onclick="handleReset()">
+                        <span class="spinner"></span><span class="btn-text">重置密码</span>
+                    </button>
+                    <div id="fpError" class="msg"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -666,6 +890,215 @@
             feed.insertBefore(card, feed.firstChild);
             while (feed.children.length > 2) feed.removeChild(feed.lastChild);
         }
+
+        /* ============ 找回密码 ============ */
+        function openForgot() {
+            const ov = document.getElementById('fpOverlay');
+            ov.classList.add('open');
+            ov.setAttribute('aria-hidden', 'false');
+            initFpParticles();
+            setTimeout(() => document.getElementById('fpEmail').focus(), 400);
+        }
+
+        function closeForgot() {
+            const ov = document.getElementById('fpOverlay');
+            ov.classList.remove('open');
+            ov.setAttribute('aria-hidden', 'true');
+            // 重置表单
+            document.getElementById('fpEmail').value = '';
+            document.getElementById('fpPassword').value = '';
+            clearOtp();
+            setMsg('fpError', '', 'error');
+            resetStrength();
+            setFpStep(1);
+            document.getElementById('fpSuccess').classList.remove('show');
+            document.getElementById('fpMain').style.display = '';
+        }
+
+        /* 步骤指示器 */
+        function setFpStep(step) {
+            const s1 = document.getElementById('fpStep1');
+            const s2 = document.getElementById('fpStep2');
+            const line = document.getElementById('fpStepLine');
+            s1.classList.toggle('active', step === 1);
+            s1.classList.toggle('done', step > 1);
+            s2.classList.toggle('active', step === 2);
+            line.classList.toggle('fill', step > 1);
+            if (step > 1) s1.querySelector('.fp-step-dot').innerHTML = '<i class="fas fa-check" style="font-size:.7rem"></i>';
+            else s1.querySelector('.fp-step-dot').textContent = '1';
+        }
+
+        /* 发送验证码 */
+        async function fpSendCode() {
+            const email = document.getElementById('fpEmail').value.trim();
+            if (!email) {
+                setMsg('fpError', '请输入注册邮箱', 'error');
+                shakeField('fpEmail');
+                return;
+            }
+            const btn = document.getElementById('fpSendBtn');
+            btn.disabled = true;
+            btn.textContent = '发送中…';
+            try {
+                const res = await fetch('/api/send-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setMsg('fpError', '', 'error');
+                    let cd = 60;
+                    const timer = setInterval(() => {
+                        cd--;
+                        btn.textContent = cd + 's 后重发';
+                        if (cd <= 0) { clearInterval(timer); btn.textContent = '发送验证码'; btn.disabled = false; }
+                    }, 1000);
+                    document.querySelector('#fpOtp .otp-box').focus();
+                } else {
+                    setMsg('fpError', data.message, 'error');
+                    btn.textContent = '发送验证码';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                setMsg('fpError', '发送失败，请稍后重试', 'error');
+                btn.textContent = '发送验证码';
+                btn.disabled = false;
+            }
+        }
+
+        /* OTP 分段输入 */
+        const otpBoxes = Array.from(document.querySelectorAll('#fpOtp .otp-box'));
+        otpBoxes.forEach((box, i) => {
+            box.addEventListener('input', () => {
+                box.value = box.value.replace(/\D/g, '').slice(-1);
+                box.classList.toggle('filled', !!box.value);
+                if (box.value && i < otpBoxes.length - 1) otpBoxes[i + 1].focus();
+                updateFpStep();
+            });
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !box.value && i > 0) otpBoxes[i - 1].focus();
+            });
+            box.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+                text.split('').forEach((ch, j) => {
+                    if (otpBoxes[j]) { otpBoxes[j].value = ch; otpBoxes[j].classList.add('filled'); }
+                });
+                if (otpBoxes[Math.min(text.length, 5)]) otpBoxes[Math.min(text.length, 5)].focus();
+                updateFpStep();
+            });
+        });
+
+        function getOtpValue() { return otpBoxes.map(b => b.value).join(''); }
+        function clearOtp() { otpBoxes.forEach(b => { b.value = ''; b.classList.remove('filled'); }); }
+        function shakeOtp() {
+            const otp = document.getElementById('fpOtp');
+            otp.classList.remove('shake'); void otp.offsetWidth; otp.classList.add('shake');
+        }
+
+        /* 根据填写情况推进步骤 */
+        function updateFpStep() {
+            const emailOk = !!document.getElementById('fpEmail').value.trim();
+            const codeOk = getOtpValue().length === 6;
+            setFpStep(emailOk && codeOk ? 2 : 1);
+        }
+        document.getElementById('fpEmail').addEventListener('input', updateFpStep);
+
+        /* 密码强度计 */
+        const fpPwd = document.getElementById('fpPassword');
+        fpPwd.addEventListener('input', () => {
+            const v = fpPwd.value;
+            const fill = document.getElementById('fpStrengthFill');
+            const label = document.getElementById('fpStrengthLabel');
+            if (!v) { resetStrength(); return; }
+            let score = 0;
+            if (v.length >= 6) score++;
+            if (v.length >= 10) score++;
+            if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+            if (/\d/.test(v)) score++;
+            if (/[^A-Za-z0-9]/.test(v)) score++;
+            const levels = [
+                { w: '20%', c: '#e03131', t: '太弱' },
+                { w: '40%', c: '#f08c00', t: '较弱' },
+                { w: '60%', c: '#fab005', t: '一般' },
+                { w: '80%', c: '#2f9e44', t: '较强' },
+                { w: '100%', c: '#1f6f31', t: '极强' }
+            ];
+            const lv = levels[Math.min(score, 5) - 1] || levels[0];
+            fill.style.width = lv.w;
+            fill.style.background = lv.c;
+            label.textContent = lv.t;
+            label.style.color = lv.c;
+        });
+        function resetStrength() {
+            document.getElementById('fpStrengthFill').style.width = '0';
+            const label = document.getElementById('fpStrengthLabel');
+            label.textContent = '密码强度';
+            label.style.color = '';
+        }
+
+        /* 重置密码 */
+        async function handleReset() {
+            const email = document.getElementById('fpEmail').value.trim();
+            const code = getOtpValue();
+            const password = fpPwd.value;
+
+            if (!email) { setMsg('fpError', '请输入注册邮箱', 'error'); shakeField('fpEmail'); return; }
+            if (code.length !== 6) { setMsg('fpError', '请输入 6 位验证码', 'error'); shakeOtp(); return; }
+            if (!password) { setMsg('fpError', '请输入新密码', 'error'); shakeField('fpPassword'); return; }
+            if (password.length < 6) { setMsg('fpError', '密码至少需要 6 位', 'error'); shakeField('fpPassword'); return; }
+
+            setLoading('fpBtn', true, '重置中…');
+            setMsg('fpError', '', 'error');
+
+            try {
+                const res = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, code, new_password: password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setLoading('fpBtn', false, '重置密码');
+                    // 显示成功动画
+                    document.getElementById('fpMain').style.display = 'none';
+                    document.getElementById('fpSuccess').classList.add('show');
+                    setTimeout(closeForgot, 2200);
+                } else {
+                    setLoading('fpBtn', false, '重置密码');
+                    setMsg('fpError', data.message, 'error');
+                    if (data.message && data.message.includes('验证码')) shakeOtp();
+                    else shakeField('fpPassword');
+                }
+            } catch (e) {
+                setLoading('fpBtn', false, '重置密码');
+                setMsg('fpError', '重置失败，请稍后重试', 'error');
+            }
+        }
+
+        /* 找回密码页粒子 */
+        let fpParticlesDone = false;
+        function initFpParticles() {
+            if (fpParticlesDone) return;
+            fpParticlesDone = true;
+            const wrap = document.getElementById('fpParticles');
+            if (!wrap) return;
+            for (let i = 0; i < 14; i++) {
+                const p = document.createElement('i');
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDuration = (8 + Math.random() * 10) + 's';
+                p.style.animationDelay = (-Math.random() * 12) + 's';
+                p.style.width = p.style.height = (3 + Math.random() * 4) + 'px';
+                p.style.opacity = 0.25 + Math.random() * 0.4;
+                wrap.appendChild(p);
+            }
+        }
+
+        /* ESC 关闭找回密码 */
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('fpOverlay').classList.contains('open')) closeForgot();
+        });
     </script>
 </body>
 </html>
