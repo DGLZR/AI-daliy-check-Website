@@ -6,318 +6,426 @@
     <title>个人中心 - 绿豆蛙日报助手</title>
     <link rel="icon" href="/favicon.jpg" type="image/jpeg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f9f0; }
-        
-        .header { background: white; padding: 20px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .header h1 { color: #2e7d32; font-size: 20px; display: flex; align-items: center; gap: 10px; }
-        .header h1 img { width: 35px; height: 35px; border-radius: 50%; }
-        .header .header-actions { display: flex; gap: 10px; }
-        .header .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; transition: all 0.3s; }
-        .header .home-btn { background: #e8f5e9; color: #2e7d32; }
-        .header .home-btn:hover { background: #c8e6c9; }
-        .header .refresh-btn { background: #2196f3; color: white; }
-        .header .refresh-btn:hover { background: #1565c0; }
-        .header .logout-btn { background: #ef5350; color: white; }
-        .header .logout-btn:hover { background: #c62828; }
-        
-        .main { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-        
-        .user-profile { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
-        .user-profile h2 { color: #2e7d32; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
-        .user-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #4caf50, #81c784); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
-        
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-        .info-item { background: #f5f5f5; padding: 15px 20px; border-radius: 10px; }
-        .info-item .label { color: #666; font-size: 14px; margin-bottom: 5px; }
-        .info-item .value { color: #333; font-size: 16px; font-weight: 600; }
-        
-        /* 存储空间进度条 */
-        .storage-item { background: #f5f5f5; padding: 15px 20px; border-radius: 10px; }
-        .storage-item .label { color: #666; font-size: 14px; margin-bottom: 10px; }
-        .storage-bar { background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden; position: relative; }
-        .storage-bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
-        .storage-bar-fill.safe { background: linear-gradient(90deg, #4caf50, #81c784); }
-        .storage-bar-fill.warning { background: linear-gradient(90deg, #ff9800, #ffb74d); }
-        .storage-bar-fill.danger { background: linear-gradient(90deg, #f44336, #ef5350); }
-        .storage-text { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #666; }
-        
-        .stats-section { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
-        .stats-section h2 { color: #2e7d32; margin-bottom: 20px; }
-        
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .stat-card { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 20px; border-radius: 12px; text-align: center; }
-        .stat-card .number { font-size: 36px; font-weight: bold; color: #2e7d32; }
-        .stat-card .unit { font-size: 14px; color: #666; }
-        .stat-card .label { color: #555; margin-top: 8px; font-size: 14px; }
-        
-        .type-breakdown { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
-        .type-breakdown h2 { color: #2e7d32; margin-bottom: 20px; }
-        
-        .type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
-        .type-item { background: #f9f9f9; padding: 15px; border-radius: 10px; text-align: center; border-left: 4px solid #4caf50; }
-        .type-item .type-name { font-size: 14px; color: #666; margin-bottom: 5px; }
-        .type-item .type-value { font-size: 20px; font-weight: bold; color: #333; }
-        
-        .timeline-section { margin-bottom: 30px; }
-        .timeline-card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .timeline-card h2 { color: #2e7d32; margin-bottom: 20px; font-size: 18px; }
-        
-        .filter-bar { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
-        .filter-bar input[type="date"] { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; }
-        .filter-bar input[type="date"]:focus { outline: none; border-color: #4caf50; }
-        .filter-bar .to-label { color: #666; }
-        .filter-bar select { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; background: white; }
-        .filter-bar input[type="text"] { padding: 10px 15px; border: 2px solid #c8e6c9; border-radius: 8px; font-size: 14px; flex: 1; min-width: 200px; }
-        .quick-btn { padding: 8px 16px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
-        .quick-btn:hover { background: #4caf50; color: white; }
-        
-        .stats-row { display: flex; gap: 40px; margin-bottom: 20px; flex-wrap: wrap; }
-        .stat-item { text-align: center; }
-        .stat-item .stat-value { font-size: 28px; font-weight: bold; color: #1a1a1a; }
-        .stat-item .stat-label { font-size: 12px; color: #999; margin-top: 5px; }
-        
-        .chart-toggle { display: flex; gap: 10px; margin-bottom: 15px; }
-        .toggle-btn { padding: 6px 16px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.3s; }
-        .toggle-btn.active { background: #1976d2; color: white; }
-        .toggle-btn:hover { background: #bbdefb; }
-        
-        .bar-chart { margin-top: 15px; }
-        .bar-row { display: flex; align-items: center; margin-bottom: 12px; gap: 12px; }
-        .bar-label { width: 60px; font-size: 13px; font-weight: 600; text-align: right; }
-        .bar-track { flex: 1; height: 10px; background: #ede; border-radius: 5px; overflow: hidden; }
-        .bar-fill { height: 100%; border-radius: 5px; transition: width 0.5s ease; min-width: 4px; }
-        .bar-value { width: 60px; font-size: 13px; color: #999; text-align: left; }
-        
-        .pie-container { display: none; max-width: 400px; margin: 0 auto; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f3f7f2;
+            --ink: #16301f;
+            --ink-soft: #4a6253;
+            --ink-faint: #8aa093;
+            --green: #2f9e44;
+            --green-deep: #1f6f31;
+            --green-dark: #122b1c;
+            --green-mid: #1c4229;
+            --lime: #a9e34b;
+            --paper: #ffffff;
+            --line: #dde8dc;
+            --danger: #e03131;
+            --font-display: 'Noto Serif SC', serif;
+            --font-body: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --shadow-sm: 0 2px 10px rgba(22,48,31,0.06);
+            --shadow-md: 0 12px 32px rgba(22,48,31,0.10);
+            --shadow-lg: 0 24px 60px rgba(22,48,31,0.16);
+        }
+
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-body); color: var(--ink); background: var(--bg); line-height: 1.6; }
+        button { font-family: inherit; cursor: pointer; }
+
+        /* ============ 环境背景 ============ */
+        .page-ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+        .page-ambient .grid-bg {
+            position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(47,158,68,0.045) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(47,158,68,0.045) 1px, transparent 1px);
+            background-size: 56px 56px;
+            mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 25%, transparent 78%);
+        }
+
+        /* ============ 顶栏 ============ */
+        .topbar { position: sticky; top: 0; z-index: 100; background: rgba(243,247,242,0.86); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+        .topbar-inner { max-width: 1240px; margin: 0 auto; padding: 0 24px; height: 68px; display: flex; align-items: center; justify-content: space-between; }
+        .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: 1.15rem; }
+        .brand img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px rgba(47,158,68,0.18); }
+        .brand em { font-style: normal; color: var(--green); }
+        .topbar-actions { display: flex; gap: 10px; }
+        .tb-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 10px; font-size: 0.86rem; font-weight: 600; border: 1.5px solid transparent; text-decoration: none; transition: all 0.28s var(--ease); }
+        .tb-btn i { font-size: 0.82rem; }
+        .tb-ghost { color: var(--ink-soft); border-color: var(--line); background: var(--paper); }
+        .tb-ghost:hover { color: var(--green-deep); border-color: var(--green); transform: translateY(-1px); }
+        .tb-solid { color: #fff; background: var(--green); box-shadow: 0 5px 16px rgba(47,158,68,0.3); }
+        .tb-solid:hover { background: var(--green-deep); transform: translateY(-1px); }
+        .tb-solid i.spin { animation: spin 0.8s linear infinite; }
+        .tb-danger { color: var(--danger); border-color: rgba(224,49,49,0.3); background: rgba(224,49,49,0.06); }
+        .tb-danger:hover { background: var(--danger); color: #fff; transform: translateY(-1px); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ============ 英雄带 ============ */
+        .hero { position: relative; overflow: hidden; background: linear-gradient(150deg, var(--green-dark) 0%, var(--green-mid) 55%, #235c36 100%); padding: 52px 0 88px; }
+        .hero .h-grid { position: absolute; inset: 0; opacity: 0.5;
+            background-image: linear-gradient(rgba(169,227,75,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(169,227,75,0.05) 1px, transparent 1px);
+            background-size: 52px 52px; mask-image: radial-gradient(ellipse 85% 90% at 30% 30%, #000 20%, transparent 80%); }
+        .hero .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; animation: orbDrift 15s ease-in-out infinite; }
+        .hero .orb-a { width: 400px; height: 400px; background: rgba(47,158,68,0.5); top: -140px; right: 8%; }
+        .hero .orb-b { width: 300px; height: 300px; background: rgba(169,227,75,0.25); bottom: -120px; left: -60px; animation-delay: -7s; }
+        @keyframes orbDrift { 0%,100% { transform: translate(0,0) scale(1);} 50% { transform: translate(-28px,30px) scale(1.1);} }
+        .hero .particles { position: absolute; inset: 0; overflow: hidden; }
+        .hero .particles i { position: absolute; bottom: -10px; border-radius: 50%; background: rgba(169,227,75,0.5); animation: rise linear infinite; }
+        @keyframes rise { 0%{transform:translateY(0);opacity:0} 12%{opacity:.85} 100%{transform:translateY(-480px) translateX(24px);opacity:0} }
+
+        .hero-inner { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 48px; flex-wrap: wrap; }
+        .hero-left { display: flex; align-items: center; gap: 26px; animation: fadeUp 0.7s var(--ease-out) 0.05s both; }
+        .avatar-wrap { position: relative; flex-shrink: 0; }
+        .avatar { width: 88px; height: 88px; border-radius: 26px; background: linear-gradient(135deg, var(--green), var(--green-deep)); display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-size: 2.2rem; font-weight: 900; box-shadow: 0 12px 32px rgba(0,0,0,0.35); }
+        .avatar-ring { position: absolute; inset: -7px; border-radius: 31px; border: 1.5px solid rgba(169,227,75,0.4); animation: ringPulse 2.6s ease-out infinite; }
+        @keyframes ringPulse { 0%{transform:scale(.9);opacity:.8} 100%{transform:scale(1.22);opacity:0} }
+        .online-dot { position: absolute; right: -3px; bottom: -3px; width: 20px; height: 20px; border-radius: 50%; background: var(--lime); border: 3px solid var(--green-dark); }
+
+        .greet-line { color: #fff; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .greet-line b { font-family: var(--font-display); font-weight: 900; color: var(--lime); }
+        .hero-email { color: rgba(255,255,255,0.6); font-family: var(--font-mono); font-size: 0.85rem; margin-bottom: 14px; }
+        .hero-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .hero-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 0.76rem; color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13); padding: 5px 13px; border-radius: 999px; backdrop-filter: blur(4px); }
+        .hero-chip i { color: var(--lime); font-size: 0.7rem; }
+        .pwd-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 20px; border-radius: 10px; border: 1.5px solid rgba(169,227,75,0.4); background: rgba(169,227,75,0.1); color: var(--lime); font-size: 0.85rem; font-weight: 700; transition: all 0.28s var(--ease); }
+        .pwd-btn:hover { background: var(--lime); color: var(--green-dark); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(169,227,75,0.3); }
+
+        /* 专注环 */
+        .hero-right { display: flex; align-items: center; gap: 36px; animation: fadeUp 0.7s var(--ease-out) 0.15s both; }
+        .focus-ring { position: relative; width: 190px; height: 190px; flex-shrink: 0; }
+        .focus-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .focus-ring .ring-track { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 12; }
+        .focus-ring .ring-fill { fill: none; stroke: url(#ringGrad); stroke-width: 12; stroke-linecap: round; stroke-dasharray: 439.8; stroke-dashoffset: 439.8; transition: stroke-dashoffset 1.4s var(--ease-out); filter: drop-shadow(0 0 8px rgba(169,227,75,0.5)); }
+        .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .ring-center b { font-family: var(--font-mono); font-size: 2.3rem; font-weight: 700; color: #fff; line-height: 1; }
+        .ring-center span { font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+        .ring-center small { font-size: 0.66rem; color: var(--lime); margin-top: 7px; font-weight: 700; letter-spacing: 0.05em; }
+
+        .hero-gauges { display: flex; flex-direction: column; gap: 18px; min-width: 240px; }
+        .gauge { }
+        .gauge-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+        .gauge-top .g-label { font-size: 0.78rem; color: rgba(255,255,255,0.7); font-weight: 600; display: flex; align-items: center; gap: 7px; }
+        .gauge-top .g-label i { color: var(--lime); font-size: 0.72rem; }
+        .gauge-top .g-val { font-family: var(--font-mono); font-size: 0.74rem; color: rgba(255,255,255,0.85); }
+        .gauge-track { height: 8px; background: rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden; }
+        .gauge-fill { height: 100%; width: 0; border-radius: 5px; transition: width 1.2s var(--ease-out); }
+        .gauge-fill.safe { background: linear-gradient(90deg, var(--green), var(--lime)); }
+        .gauge-fill.warning { background: linear-gradient(90deg, #f08c00, #ffd43b); }
+        .gauge-fill.danger { background: linear-gradient(90deg, #e03131, #ff8787); }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(26px);} to { opacity: 1; transform: translateY(0);} }
+
+        /* ============ 指标卡（悬浮在英雄带底部）============ */
+        .metrics { max-width: 1240px; margin: -52px auto 0; padding: 0 24px; position: relative; z-index: 5; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+        .metric-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 24px 24px 20px; box-shadow: var(--shadow-md); position: relative; overflow: hidden; transition: all 0.3s var(--ease); animation: fadeUp 0.6s var(--ease-out) both; }
+        .metric-card:nth-child(1){animation-delay:.1s} .metric-card:nth-child(2){animation-delay:.18s} .metric-card:nth-child(3){animation-delay:.26s} .metric-card:nth-child(4){animation-delay:.34s}
+        .metric-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .metric-card .m-icon { position: absolute; top: 18px; right: 18px; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: transform 0.3s var(--ease); }
+        .metric-card:hover .m-icon { transform: scale(1.12) rotate(-6deg); }
+        .metric-card .m-value { font-family: var(--font-mono); font-size: 2.1rem; font-weight: 700; line-height: 1.1; }
+        .metric-card .m-value small { font-size: 0.9rem; font-weight: 500; color: var(--ink-faint); margin-left: 3px; font-family: var(--font-body); }
+        .metric-card .m-label { font-size: 0.82rem; color: var(--ink-soft); margin-top: 6px; font-weight: 600; }
+        .metric-card .m-trend { display: inline-flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 700; margin-top: 10px; padding: 3px 10px; border-radius: 999px; }
+        .mc-green .m-icon { background: rgba(47,158,68,0.12); color: var(--green-deep); } .mc-green .m-value { color: var(--green-deep); } .mc-green .m-trend { background: rgba(47,158,68,0.1); color: var(--green-deep); }
+        .mc-blue .m-icon { background: rgba(28,126,214,0.12); color: #1c7ed6; } .mc-blue .m-value { color: #1c7ed6; } .mc-blue .m-trend { background: rgba(28,126,214,0.1); color: #1c7ed6; }
+        .mc-orange .m-icon { background: rgba(240,140,0,0.13); color: #e8590c; } .mc-orange .m-value { color: #e8590c; } .mc-orange .m-trend { background: rgba(240,140,0,0.1); color: #e8590c; }
+        .mc-purple .m-icon { background: rgba(156,39,176,0.12); color: #9c36b5; } .mc-purple .m-value { color: #9c36b5; } .mc-purple .m-trend { background: rgba(156,39,176,0.1); color: #9c36b5; }
+
+        /* ============ 主网格 ============ */
+        .grid { max-width: 1240px; margin: 34px auto 60px; padding: 0 24px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+        .card { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 26px; box-shadow: var(--shadow-sm); transition: box-shadow 0.3s var(--ease); }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .span7 { grid-column: span 7; } .span5 { grid-column: span 5; } .span12 { grid-column: span 12; }
+
+        .card-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+        .card-title { display: flex; align-items: center; gap: 11px; font-family: var(--font-display); font-weight: 900; font-size: 1.12rem; }
+        .card-title .ct-icon { width: 36px; height: 36px; border-radius: 11px; background: rgba(47,158,68,0.12); color: var(--green-deep); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+        .count-badge { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--green-deep); background: rgba(47,158,68,0.1); padding: 3px 11px; border-radius: 999px; }
+
+        /* 图表切换 */
+        .chart-tools { display: flex; align-items: center; gap: 8px; }
+        .seg-mini { display: flex; background: #eef4ed; border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+        .seg-mini button { border: none; background: transparent; padding: 6px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); transition: all 0.25s var(--ease); display: inline-flex; align-items: center; gap: 6px; }
+        .seg-mini button.active { background: var(--green-dark); color: #fff; box-shadow: 0 3px 10px rgba(18,43,28,0.25); }
+        .value-switch { display: inline-flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 700; color: var(--ink-soft); background: #eef4ed; border: 1px solid var(--line); padding: 6px 13px; border-radius: 10px; transition: all 0.25s var(--ease); }
+        .value-switch:hover { color: var(--green-deep); border-color: var(--green); }
+        .value-switch .vs-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+
+        /* 条形分布 */
+        .bar-chart { display: flex; flex-direction: column; gap: 13px; }
+        .bar-row { display: flex; align-items: center; gap: 13px; }
+        .bar-rank { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: var(--ink-faint); width: 20px; text-align: center; flex-shrink: 0; }
+        .bar-label { width: 62px; font-size: 0.82rem; font-weight: 700; text-align: right; flex-shrink: 0; }
+        .bar-track { flex: 1; height: 12px; background: #eef4ed; border-radius: 7px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 7px; width: 0; transition: width 0.9s var(--ease-out); min-width: 4px; }
+        .bar-value { width: 58px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink-soft); flex-shrink: 0; }
+        .pie-container { display: none; max-width: 380px; margin: 0 auto; }
         .pie-container.active { display: block; }
-        .bar-container.active { display: block; }
-        
-        .timeline-list { margin-top: 15px; }
-        .timeline-item { display: flex; gap: 15px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .timeline-time { min-width: 80px; text-align: right; color: #999; font-size: 13px; padding-top: 2px; }
-        .timeline-dot { width: 20px; display: flex; flex-direction: column; align-items: center; }
-        .timeline-dot .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; }
-        .timeline-dot .line { width: 2px; flex: 1; background: #e0e0e0; }
-        .timeline-content { flex: 1; background: #fafafa; padding: 15px; border-radius: 10px; border: 1px solid #f0f0f0; }
-        .timeline-desc { font-size: 14px; color: #333; margin-bottom: 10px; line-height: 1.5; }
-        .timeline-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-        .timeline-tag { padding: 3px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; }
-        .timeline-tag.type { color: white; }
-        .timeline-tag.auto { background: #e0e0e0; color: #666; }
-        .timeline-tag.time { background: transparent; color: #ccc; }
-        
-        .empty-state { text-align: center; padding: 40px; color: #ccc; font-size: 16px; }
-        
-        .pagination { display: flex; gap: 5px; margin-top: 20px; justify-content: center; align-items: center; }
-        .pagination .page-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
-        .pagination .page-btn.active { background: #16a34a; color: white; border-color: #16a34a; }
-        .pagination .page-btn:hover:not(.active) { background: #f9fafb; }
-        .pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .history-reports { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; }
-        .history-reports h2 { color: #2e7d32; margin-bottom: 20px; }
-        
-        .report-filter { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .report-filter .type-group { display: flex; gap: 0; }
-        .report-filter .type-btn { padding: 8px 16px; background: white; border: 1px solid #e5e7eb; cursor: pointer; font-size: 13px; transition: all 0.3s; margin: 0; line-height: 1.5; }
-        .report-filter .type-btn:first-child { border-radius: 6px 0 0 6px; }
-        .report-filter .type-btn:last-child { border-radius: 0 6px 6px 0; border-left: none; }
-        .report-filter .type-btn.active { background: #16a34a; color: white; border-color: #16a34a; }
-        .report-filter .type-btn:hover:not(.active) { background: #f9fafb; }
-        .report-filter input[type="text"] { padding: 8px 15px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; width: 200px; }
-        .report-filter input[type="date"] { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
-        
-        .report-list { margin-top: 15px; }
-        .report-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
-        .report-item:hover { background: #f9f9f9; }
-        .report-item:last-child { border-bottom: none; }
-        .report-info { flex: 1; }
-        .report-title { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 5px; }
-        .report-meta { display: flex; gap: 15px; font-size: 12px; color: #999; }
-        .report-meta span { display: flex; align-items: center; gap: 5px; }
-        .report-actions { display: flex; gap: 8px; }
-        .report-actions .action-btn { padding: 6px 12px; border: 1px solid #e5e7eb; background: white; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
-        .report-actions .action-btn:hover { background: #f5f5f5; }
-        .report-actions .action-btn.view { color: #16a34a; border-color: #16a34a; }
-        
-        .report-type-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 10px; }
-        .report-type-tag.日报 { background: #e8f5e9; color: #2e7d32; }
-        .report-type-tag.周报 { background: #e3f2fd; color: #1565c0; }
-        .report-type-tag.月报 { background: #fff3e0; color: #e65100; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; width: 90%; max-width: 900px; max-height: 85vh; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-        .modal-header { padding: 20px 25px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { color: #333; font-size: 18px; }
-        .modal-close { width: 32px; height: 32px; border: none; background: #f5f5f5; border-radius: 6px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
-        .modal-close:hover { background: #e5e7eb; }
-        .modal-body { padding: 25px; overflow-y: auto; flex: 1; }
-        .modal-body .report-content { line-height: 1.8; color: #333; }
-        .modal-body .report-content h1 { font-size: 24px; margin-bottom: 20px; color: #2e7d32; }
-        .modal-body .report-content h2 { font-size: 20px; margin: 20px 0 10px; color: #333; }
-        .modal-body .report-content h3 { font-size: 16px; margin: 15px 0 8px; color: #555; }
-        .modal-body .report-content p { margin-bottom: 12px; }
-        .modal-body .report-content ul, .modal-body .report-content ol { margin-left: 20px; margin-bottom: 12px; }
+        .bar-container { display: none; }
+        .bar-container.active { display: flex; }
+
+        /* 筛选栏 */
+        .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .f-input, .f-select { padding: 9px 14px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 0.84rem; background: #fafcfa; color: var(--ink); transition: all 0.25s var(--ease); font-family: inherit; }
+        .f-input:focus, .f-select:focus { outline: none; border-color: var(--green); background: #fff; box-shadow: 0 0 0 3px rgba(47,158,68,0.12); }
+        .f-search { flex: 1; min-width: 170px; }
+        .f-to { color: var(--ink-faint); font-size: 0.8rem; }
+        .quick-btn { padding: 8px 16px; background: rgba(47,158,68,0.09); border: 1.5px solid rgba(47,158,68,0.25); border-radius: 999px; font-size: 0.78rem; font-weight: 700; color: var(--green-deep); transition: all 0.25s var(--ease); }
+        .quick-btn:hover { background: var(--green); border-color: var(--green); color: #fff; transform: translateY(-1px); }
+
+        /* 时间线内联统计 */
+        .tl-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+        .tl-stat { display: flex; align-items: center; gap: 11px; background: #f7faf7; border: 1px solid var(--line); border-radius: 13px; padding: 11px 18px; }
+        .tl-stat i { color: var(--green); font-size: 0.95rem; }
+        .tl-stat b { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+        .tl-stat span { font-size: 0.72rem; color: var(--ink-faint); }
+
+        /* 时间线列表 */
+        .timeline-list { position: relative; }
+        .timeline-item { display: flex; gap: 16px; padding: 13px 0; animation: itemIn 0.4s var(--ease-out) both; }
+        @keyframes itemIn { from { opacity: 0; transform: translateX(-14px);} to { opacity: 1; transform: translateX(0);} }
+        .timeline-time { min-width: 74px; text-align: right; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.74rem; padding-top: 4px; line-height: 1.5; flex-shrink: 0; }
+        .timeline-dot { width: 20px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+        .timeline-dot .dot { width: 13px; height: 13px; border-radius: 50%; margin-top: 5px; box-shadow: 0 0 0 4px rgba(47,158,68,0.12); }
+        .timeline-dot .line { width: 2px; flex: 1; background: var(--line); margin-top: 4px; }
+        .timeline-content { flex: 1; background: #f9fcf9; padding: 15px 18px; border-radius: 13px; border: 1px solid var(--line); transition: all 0.25s var(--ease); }
+        .timeline-content:hover { border-color: rgba(47,158,68,0.4); transform: translateX(4px); box-shadow: var(--shadow-sm); }
+        .timeline-desc { font-size: 0.88rem; color: var(--ink); margin-bottom: 10px; line-height: 1.6; }
+        .timeline-tags { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .timeline-tag { padding: 3px 11px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+        .timeline-tag.type { color: #fff; }
+        .timeline-tag.auto { background: #eef4ed; color: var(--ink-soft); }
+        .timeline-tag.time { background: transparent; color: var(--ink-faint); font-family: var(--font-mono); }
+
+        .empty-state { text-align: center; padding: 46px 20px; color: var(--ink-faint); font-size: 0.9rem; }
+        .empty-state i { display: block; font-size: 2.2rem; margin-bottom: 12px; opacity: 0.4; }
+
+        /* 分页 */
+        .pagination { display: flex; gap: 6px; margin-top: 22px; justify-content: center; align-items: center; flex-wrap: wrap; }
+        .page-btn { min-width: 36px; height: 36px; padding: 0 8px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--line); background: var(--paper); border-radius: 9px; font-size: 0.84rem; font-weight: 600; color: var(--ink-soft); transition: all 0.22s var(--ease); }
+        .page-btn:hover:not(:disabled):not(.active) { border-color: var(--green); color: var(--green-deep); transform: translateY(-1px); }
+        .page-btn.active { background: var(--green); border-color: var(--green); color: #fff; box-shadow: 0 4px 12px rgba(47,158,68,0.3); }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-info { font-size: 0.76rem; color: var(--ink-faint); margin-right: 10px; }
+
+        /* 报告列表 */
+        .report-filter { display: flex; gap: 9px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+        .type-group { display: flex; }
+        .type-group .type-btn { padding: 7px 14px; background: var(--paper); border: 1.5px solid var(--line); font-size: 0.76rem; font-weight: 700; color: var(--ink-soft); transition: all 0.22s var(--ease); margin: 0; }
+        .type-group .type-btn:first-child { border-radius: 9px 0 0 9px; }
+        .type-group .type-btn:last-child { border-radius: 0 9px 9px 0; border-left: none; }
+        .type-group .type-btn:not(:first-child):not(:last-child) { border-left: none; }
+        .type-group .type-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+        .type-group .type-btn:hover:not(.active) { color: var(--green-deep); border-color: var(--green); }
+        .report-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 13px; margin-bottom: 10px; transition: all 0.25s var(--ease); background: #fafcfa; }
+        .report-item:hover { border-color: rgba(47,158,68,0.4); transform: translateX(4px); box-shadow: var(--shadow-sm); background: #fff; }
+        .report-info { flex: 1; min-width: 0; }
+        .report-title { font-size: 0.88rem; font-weight: 700; color: var(--ink); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .report-meta { display: flex; gap: 14px; font-size: 0.72rem; color: var(--ink-faint); }
+        .report-meta span { display: inline-flex; align-items: center; gap: 5px; }
+        .action-btn { padding: 7px 15px; border: 1.5px solid rgba(47,158,68,0.4); background: rgba(47,158,68,0.07); color: var(--green-deep); border-radius: 9px; font-size: 0.76rem; font-weight: 700; transition: all 0.22s var(--ease); flex-shrink: 0; }
+        .action-btn:hover { background: var(--green); color: #fff; transform: translateY(-1px); }
+        .report-type-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; }
+        .report-type-tag.日报 { background: rgba(47,158,68,0.12); color: var(--green-deep); }
+        .report-type-tag.周报 { background: rgba(28,126,214,0.12); color: #1c7ed6; }
+        .report-type-tag.月报 { background: rgba(240,140,0,0.13); color: #e8590c; }
+
+        /* ============ 模态框 ============ */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(18,43,28,0.55); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; animation: modalFade 0.3s var(--ease); }
+        @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background: var(--paper); width: 92%; max-width: 900px; max-height: 86vh; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); animation: modalUp 0.35s var(--ease-out); }
+        @keyframes modalUp { from { transform: translateY(26px) scale(0.97); opacity: 0;} to { transform: translateY(0) scale(1); opacity: 1;} }
+        .modal-header { padding: 20px 26px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+        .modal-header h3 { font-family: var(--font-display); font-weight: 900; font-size: 1.15rem; color: var(--ink); }
+        .modal-close { width: 34px; height: 34px; border: none; background: #eef4ed; border-radius: 9px; font-size: 1.1rem; color: var(--ink-soft); display: flex; align-items: center; justify-content: center; transition: all 0.22s var(--ease); flex-shrink: 0; }
+        .modal-close:hover { background: var(--danger); color: #fff; transform: rotate(90deg); }
+        .modal-body { padding: 26px; overflow-y: auto; flex: 1; }
+        .report-content { line-height: 1.85; color: var(--ink); font-size: 0.92rem; }
+        .report-content h1 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 18px; color: var(--green-deep); }
+        .report-content h2 { font-size: 1.15rem; margin: 20px 0 10px; }
+        .report-content h3 { font-size: 1rem; margin: 15px 0 8px; color: var(--ink-soft); }
+        .report-content p { margin-bottom: 12px; }
+        .report-content ul, .report-content ol { margin-left: 22px; margin-bottom: 12px; }
+
+        /* 修改密码表单 */
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 7px; }
+        .form-group input { width: 100%; padding: 12px 15px; border: 1.5px solid var(--line); border-radius: 11px; font-size: 0.9rem; background: #fafcfa; transition: all 0.25s var(--ease); font-family: inherit; }
+        .form-group input:focus { outline: none; border-color: var(--green); background: #fff; box-shadow: 0 0 0 3px rgba(47,158,68,0.12); }
+        .error-msg { color: var(--danger); font-size: 0.8rem; min-height: 18px; margin-top: 4px; }
+        .success-msg { color: var(--green); font-size: 0.8rem; font-weight: 700; min-height: 18px; margin-top: 4px; }
+        .btn-confirm { width: 100%; padding: 13px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; font-size: 0.95rem; font-weight: 700; margin-top: 8px; box-shadow: 0 8px 22px rgba(47,158,68,0.32); transition: all 0.25s var(--ease); }
+        .btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(47,158,68,0.4); }
+
+        /* 滚动显现 */
+        .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.65s var(--ease-out), transform 0.65s var(--ease-out); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* ============ 响应式 ============ */
+        @media (max-width: 1024px) {
+            .span7, .span5 { grid-column: span 12; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .hero-inner { justify-content: center; text-align: center; }
+            .hero-left { flex-direction: column; }
+            .hero-chips { justify-content: center; }
+        }
+        @media (max-width: 640px) {
+            .metrics-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .metric-card { padding: 18px; }
+            .metric-card .m-value { font-size: 1.6rem; }
+            .hero-right { flex-direction: column; gap: 26px; }
+            .topbar-actions .tb-label { display: none; }
+            .tb-btn { padding: 9px 12px; }
+            .grid { gap: 14px; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>
-            <img src="/favicon.jpg" alt="绿豆蛙">
-            个人中心
-        </h1>
-        <div class="header-actions">
-            <a href="/" class="btn home-btn">返回首页</a>
-            <button class="btn refresh-btn" onclick="refreshData()" id="refreshBtn">刷新数据</button>
-            <button class="btn logout-btn" onclick="logout()">退出登录</button>
-        </div>
-    </div>
-    
-    <div class="main">
-        <div class="user-profile">
-            <h2>
-                <div class="user-avatar">{{ user['邮箱'][0].upper() }}</div>
-                {{ user['邮箱'] }}
-            </h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="label">邮箱</div>
-                    <div class="value">{{ user['邮箱'] }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">昵称</div>
-                    <div class="value">{{ detail.get('昵称', user['邮箱'].split('@')[0]) }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">注册时间</div>
-                    <div class="value">{{ user['注册时间'] }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="label">最近登录时间</div>
-                    <div class="value">{{ user.get('最近登录时间', '从未登录') }}</div>
-                </div>
-                <div class="info-item change-password-item">
-                    <div class="label">修改密码</div>
-                    <button class="btn change-password-btn" onclick="showChangePasswordModal()">修改密码</button>
-                </div>
-                <div class="storage-item">
-                    <div class="label">截图记录存储空间</div>
-                    <div class="storage-bar">
-                        <div class="storage-bar-fill safe" id="recordsStorageBarFill" style="width: 0%"></div>
-                    </div>
-                    <div class="storage-text">
-                        <span id="recordsStorageUsed">加载中...</span>
-                        <span>/ 1 MB</span>
-                    </div>
-                </div>
-                <div class="storage-item">
-                    <div class="label">报告存储空间</div>
-                    <div class="storage-bar">
-                        <div class="storage-bar-fill safe" id="reportStorageBarFill" style="width: 0%"></div>
-                    </div>
-                    <div class="storage-text">
-                        <span id="reportStorageUsed">加载中...</span>
-                        <span>/ 1 MB</span>
-                    </div>
-                </div>
+    <div class="page-ambient"><div class="grid-bg"></div></div>
+
+    <!-- ============ 顶栏 ============ -->
+    <nav class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/">
+                <img src="/favicon.jpg" alt="绿豆蛙">
+                <span>绿豆蛙<em>·个人中心</em></span>
+            </a>
+            <div class="topbar-actions">
+                <a href="/" class="tb-btn tb-ghost"><i class="fas fa-home"></i><span class="tb-label">返回首页</span></a>
+                <button class="tb-btn tb-solid" onclick="refreshData()" id="refreshBtn"><i class="fas fa-sync-alt" id="refreshIcon"></i><span class="tb-label">刷新数据</span></button>
+                <button class="tb-btn tb-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i><span class="tb-label">退出登录</span></button>
             </div>
         </div>
-        
-        <div class="stats-section">
-            <h2>今日专注统计</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="number">{{ detail.get('今日专注时长(分钟)', '0') }}</div>
-                    <div class="unit">分钟</div>
-                    <div class="label">今日专注时长</div>
+    </nav>
+
+    <!-- ============ 英雄带 ============ -->
+    <header class="hero">
+        <div class="h-grid"></div>
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+        <div class="particles" id="heroParticles"></div>
+
+        <div class="hero-inner">
+            <div class="hero-left">
+                <div class="avatar-wrap">
+                    <div class="avatar">{{ user['邮箱'][0].upper() }}</div>
+                    <div class="avatar-ring"></div>
+                    <div class="online-dot"></div>
                 </div>
-                <div class="stat-card">
-                    <div class="number">{{ detail.get('今日记录条数', '0') }}</div>
-                    <div class="unit">条</div>
-                    <div class="label">今日记录条数</div>
+                <div>
+                    <div class="greet-line"><span id="greetIcon">☀️</span><span id="greetText">你好</span>，<b>{{ detail.get('昵称', user['邮箱'].split('@')[0]) }}</b></div>
+                    <div class="hero-email">{{ user['邮箱'] }}</div>
+                    <div class="hero-chips">
+                        <span class="hero-chip"><i class="fas fa-calendar-plus"></i> 注册于 {{ user['注册时间'] }}</span>
+                        <span class="hero-chip"><i class="fas fa-clock"></i> 最近登录 {{ user.get('最近登录时间', '从未登录') }}</span>
+                    </div>
+                    <button class="pwd-btn" onclick="showChangePasswordModal()"><i class="fas fa-key"></i> 修改密码</button>
                 </div>
-                <div class="stat-card">
-                    <div class="number">{{ detail.get('总共记录条数', '0') }}</div>
-                    <div class="unit">条</div>
-                    <div class="label">总共记录条数</div>
+            </div>
+
+            <div class="hero-right">
+                <div class="focus-ring">
+                    <svg viewBox="0 0 170 170">
+                        <defs>
+                            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#a9e34b"/>
+                                <stop offset="100%" stop-color="#2f9e44"/>
+                            </linearGradient>
+                        </defs>
+                        <circle class="ring-track" cx="85" cy="85" r="70"/>
+                        <circle class="ring-fill" id="focusRingFill" cx="85" cy="85" r="70"/>
+                    </svg>
+                    <div class="ring-center">
+                        <b id="focusRingValue">0</b>
+                        <span>分钟</span>
+                        <small>今日专注 · 目标 8h</small>
+                    </div>
+                </div>
+
+                <div class="hero-gauges">
+                    <div class="gauge">
+                        <div class="gauge-top">
+                            <span class="g-label"><i class="fas fa-database"></i> 截图记录存储</span>
+                            <span class="g-val" id="recordsStorageUsed">…</span>
+                        </div>
+                        <div class="gauge-track"><div class="gauge-fill safe" id="recordsStorageBarFill"></div></div>
+                    </div>
+                    <div class="gauge">
+                        <div class="gauge-top">
+                            <span class="g-label"><i class="fas fa-file-alt"></i> 报告存储</span>
+                            <span class="g-val" id="reportStorageUsed">…</span>
+                        </div>
+                        <div class="gauge-track"><div class="gauge-fill safe" id="reportStorageBarFill"></div></div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="type-breakdown">
-            <h2>今日各类型专注时长（分钟）</h2>
-            <div class="type-grid">
-                {% for type in work_types %}
-                <div class="type-item">
-                    <div class="type-name">{{ type }}</div>
-                    <div class="type-value">{{ detail.get('今日' + type + '时长(分钟)', '0') }}</div>
-                </div>
-                {% endfor %}
+    </header>
+
+    <!-- ============ 指标卡 ============ -->
+    <section class="metrics">
+        <div class="metrics-grid">
+            <div class="metric-card mc-green">
+                <div class="m-icon"><i class="fas fa-stopwatch"></i></div>
+                <div class="m-value"><span id="metricFocus">0</span><small>分钟</small></div>
+                <div class="m-label">今日专注时长</div>
+                <span class="m-trend"><i class="fas fa-fire"></i> 持续积累中</span>
+            </div>
+            <div class="metric-card mc-blue">
+                <div class="m-icon"><i class="fas fa-list-check"></i></div>
+                <div class="m-value"><span id="metricRecords">0</span><small>条</small></div>
+                <div class="m-label">今日记录条数</div>
+                <span class="m-trend"><i class="fas fa-bolt"></i> 自动捕捉</span>
+            </div>
+            <div class="metric-card mc-orange">
+                <div class="m-icon"><i class="fas fa-layer-group"></i></div>
+                <div class="m-value"><span id="metricTotal">0</span><small>条</small></div>
+                <div class="m-label">累计记录条数</div>
+                <span class="m-trend"><i class="fas fa-chart-line"></i> 稳步增长</span>
+            </div>
+            <div class="metric-card mc-purple">
+                <div class="m-icon"><i class="fas fa-file-signature"></i></div>
+                <div class="m-value"><span id="metricReports">0</span><small>份</small></div>
+                <div class="m-label">今日生成报告</div>
+                <span class="m-trend"><i class="fas fa-magic"></i> AI 撰写</span>
             </div>
         </div>
-        
-        <div class="timeline-section">
-            <div class="timeline-card">
-                <h2>⏱️ 工作时间线</h2>
-                <div class="filter-bar">
-                    <input type="date" id="startDate" value="">
-                    <span class="to-label">至</span>
-                    <input type="date" id="endDate" value="">
-                    <select id="tagFilter">
-                        <option value="全部标签">全部标签</option>
-                        {% for type in work_types %}
-                        <option value="{{ type }}">{{ type }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" id="searchInput" placeholder="搜索活动...">
-                    <button class="quick-btn" onclick="quickFilter('today')">今天</button>
-                    <button class="quick-btn" onclick="quickFilter('week')">近7天</button>
-                    <button class="quick-btn" onclick="quickFilter('month')">近30天</button>
-                </div>
-            </div>
-            
-            <div class="timeline-card">
-                <div class="stats-row">
-                    <div class="stat-item">
-                        <div class="stat-value" id="recordCount">0</div>
-                        <div class="stat-label">记录条数</div>
+    </section>
+
+    <!-- ============ 主网格 ============ -->
+    <main class="grid">
+        <!-- 分类时长分布 -->
+        <section class="card span7 reveal">
+            <div class="card-head">
+                <div class="card-title"><span class="ct-icon"><i class="fas fa-chart-pie"></i></span>分类时长分布</div>
+                <div class="chart-tools">
+                    <div class="seg-mini">
+                        <button class="active" data-mode="bar" onclick="toggleChartMode('bar', this)"><i class="fas fa-chart-bar"></i> 条形</button>
+                        <button data-mode="pie" onclick="toggleChartMode('pie', this)"><i class="fas fa-chart-pie"></i> 饼状</button>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="totalDuration">0h</div>
-                        <div class="stat-label">专注时长</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="activeTime">--:-- — --:--</div>
-                        <div class="stat-label">活跃时段</div>
-                    </div>
+                    <button class="value-switch" onclick="toggleValueMode(this)"><span class="vs-dot"></span><span class="vs-text">时长</span></button>
                 </div>
             </div>
-            
-            <div class="timeline-card">
-                <h2>📊 分类时长分布</h2>
-                <div class="chart-toggle">
-                    <button class="toggle-btn active" onclick="toggleChartMode('bar')">条形图</button>
-                    <button class="toggle-btn" onclick="toggleChartMode('pie')">饼状图</button>
-                    <button class="toggle-btn" onclick="toggleValueMode()">切换时长/占比</button>
-                </div>
-                <div id="barChart" class="bar-container active bar-chart"></div>
-                <div id="pieChart" class="pie-container">
-                    <canvas id="pieCanvas"></canvas>
-                </div>
+            <div id="barChart" class="bar-container active bar-chart"></div>
+            <div id="pieChart" class="pie-container"><canvas id="pieCanvas"></canvas></div>
+        </section>
+
+        <!-- 我的报告 -->
+        <section class="card span5 reveal">
+            <div class="card-head">
+                <div class="card-title"><span class="ct-icon"><i class="fas fa-file-alt"></i></span>我的报告</div>
+                <span class="count-badge" id="reportCountBadge">0 份</span>
             </div>
-            
-            <div class="timeline-card">
-                <h2>⏱️ 活动时间线</h2>
-                <div id="timelineList" class="timeline-list"></div>
-                <div id="timelinePagination" class="pagination"></div>
-            </div>
-        </div>
-        
-        <div class="history-reports">
-            <h2>📄 我的报告</h2>
             <div class="report-filter">
                 <div class="type-group">
                     <button class="type-btn active" onclick="filterReportType('全部', this)">全部</button>
@@ -325,33 +433,66 @@
                     <button class="type-btn" onclick="filterReportType('周报', this)">周报</button>
                     <button class="type-btn" onclick="filterReportType('月报', this)">月报</button>
                 </div>
-                <input type="text" id="reportSearch" placeholder="搜索报告..." oninput="filterReports()">
-                <input type="date" id="reportStartDate" onchange="filterReports()" title="开始日期">
-                <span style="color: #666;">至</span>
-                <input type="date" id="reportEndDate" onchange="filterReports()" title="结束日期">
+                <input type="text" class="f-input" id="reportSearch" placeholder="搜索报告…" oninput="filterReports()" style="flex:1;min-width:110px;">
             </div>
-            <div id="reportList" class="report-list"></div>
+            <div class="report-filter" style="margin-bottom:18px;">
+                <input type="date" class="f-input" id="reportStartDate" onchange="filterReports()" title="开始日期">
+                <span class="f-to">至</span>
+                <input type="date" class="f-input" id="reportEndDate" onchange="filterReports()" title="结束日期">
+            </div>
+            <div id="reportList"></div>
             <div id="reportPagination" class="pagination"></div>
-        </div>
-    </div>
-    
+        </section>
+
+        <!-- 活动时间线 -->
+        <section class="card span12 reveal">
+            <div class="card-head">
+                <div class="card-title"><span class="ct-icon"><i class="fas fa-stream"></i></span>活动时间线</div>
+            </div>
+
+            <div class="filter-bar">
+                <input type="date" class="f-input" id="startDate">
+                <span class="f-to">至</span>
+                <input type="date" class="f-input" id="endDate">
+                <select class="f-select" id="tagFilter">
+                    <option value="全部标签">全部标签</option>
+                    {% for type in work_types %}
+                    <option value="{{ type }}">{{ type }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" class="f-input f-search" id="searchInput" placeholder="搜索活动描述…">
+                <button class="quick-btn" onclick="quickFilter('today')">今天</button>
+                <button class="quick-btn" onclick="quickFilter('week')">近 7 天</button>
+                <button class="quick-btn" onclick="quickFilter('month')">近 30 天</button>
+            </div>
+
+            <div class="tl-stats">
+                <div class="tl-stat"><i class="fas fa-list-check"></i><div><b id="recordCount">0</b><br><span>记录条数</span></div></div>
+                <div class="tl-stat"><i class="fas fa-stopwatch"></i><div><b id="totalDuration">0h</b><br><span>专注时长</span></div></div>
+                <div class="tl-stat"><i class="fas fa-clock"></i><div><b id="activeTime">--:-- — --:--</b><br><span>活跃时段</span></div></div>
+            </div>
+
+            <div id="timelineList" class="timeline-list"></div>
+            <div id="timelinePagination" class="pagination"></div>
+        </section>
+    </main>
+
+    <!-- ============ 报告查看模态框 ============ -->
     <div id="reportModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">报告标题</h3>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
-            <div class="modal-body">
-                <div id="modalContent" class="report-content"></div>
-            </div>
+            <div class="modal-body"><div id="modalContent" class="report-content"></div></div>
         </div>
     </div>
-    
-    <!-- 修改密码模态框 -->
+
+    <!-- ============ 修改密码模态框 ============ -->
     <div id="changePasswordModal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 420px;">
             <div class="modal-header">
-                <h3>修改密码</h3>
+                <h3><i class="fas fa-key" style="color:var(--green);margin-right:8px;"></i>修改密码</h3>
                 <button class="modal-close" onclick="closeChangePasswordModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -361,7 +502,7 @@
                 </div>
                 <div class="form-group">
                     <label>新密码</label>
-                    <input type="password" id="newPassword" placeholder="请输入新密码（至少6位）">
+                    <input type="password" id="newPassword" placeholder="请输入新密码（至少 6 位）">
                 </div>
                 <div class="form-group">
                     <label>确认新密码</label>
@@ -369,67 +510,147 @@
                 </div>
                 <div id="changePasswordError" class="error-msg"></div>
                 <div id="changePasswordSuccess" class="success-msg"></div>
-                <button class="btn btn-success" onclick="changePassword()" style="width: 100%; margin-top: 15px;">确认修改</button>
+                <button class="btn-confirm" onclick="changePassword()">确认修改</button>
             </div>
         </div>
     </div>
-    
+
     <script>
         const email = '{{ user["邮箱"] }}';
+        const serverData = {
+            focus: parseFloat('{{ detail.get("今日专注时长(分钟)", "0") }}') || 0,
+            todayRecords: parseInt('{{ detail.get("今日记录条数", "0") }}') || 0,
+            totalRecords: parseInt('{{ detail.get("总共记录条数", "0") }}') || 0,
+            todayReports: parseInt('{{ detail.get("今日生成报告数", "0") }}') || 0
+        };
+        const FOCUS_GOAL = 480; // 8 小时
+
         let allRecords = [];
         let isPieMode = false;
         let isPercentageMode = false;
         let pieChart = null;
         let currentTimelinePage = 1;
         const timelinePerPage = 15;
-        
+
         let allReports = [];
         let filteredReports = [];
         let currentReportType = '全部';
         let currentReportPage = 1;
         const reportsPerPage = 5;
-        
+
         const TYPE_COLORS = {
-            '开发': '#4CAF50', '沟通': '#2196F3', '生活': '#FF9800', '学习': '#9C27B0',
-            '设计': '#E91E63', '管理': '#00BCD4', '文档': '#795548', '娱乐': '#F44336',
-            '产品': '#3F51B5', '会议': '#FFEB3B', '运维': '#607D8B', '测试': '#8BC34A',
-            '数据分析': '#FF5722', '其他': '#9E9E9E'
+            '开发': '#2f9e44', '沟通': '#1c7ed6', '生活': '#f08c00', '学习': '#9c36b5',
+            '设计': '#e64980', '管理': '#0ca678', '文档': '#845ef7', '娱乐': '#fa5252',
+            '产品': '#364fc7', '会议': '#f59f00', '运维': '#495057', '测试': '#66a80f',
+            '数据分析': '#e8590c', '其他': '#868e96'
         };
-        
+
+        /* ============ 初始化 ============ */
+        document.addEventListener('DOMContentLoaded', () => {
+            initGreeting();
+            initHeroParticles();
+            initReveal();
+            initDates();
+            animateHero();
+            loadData();
+            loadReports();
+            loadStorageInfo();
+        });
+
+        function initGreeting() {
+            const h = new Date().getHours();
+            let text = '晚上好', icon = '🌙';
+            if (h >= 5 && h < 9) { text = '早上好'; icon = '🌤️'; }
+            else if (h >= 9 && h < 12) { text = '上午好'; icon = '☀️'; }
+            else if (h >= 12 && h < 14) { text = '中午好'; icon = '🌞'; }
+            else if (h >= 14 && h < 18) { text = '下午好'; icon = '☀️'; }
+            document.getElementById('greetText').textContent = text;
+            document.getElementById('greetIcon').textContent = icon;
+        }
+
+        function initHeroParticles() {
+            const wrap = document.getElementById('heroParticles');
+            for (let i = 0; i < 14; i++) {
+                const p = document.createElement('i');
+                p.style.left = Math.random() * 100 + '%';
+                p.style.width = p.style.height = (3 + Math.random() * 4) + 'px';
+                p.style.animationDuration = (7 + Math.random() * 9) + 's';
+                p.style.animationDelay = (-Math.random() * 10) + 's';
+                p.style.opacity = 0.2 + Math.random() * 0.4;
+                wrap.appendChild(p);
+            }
+        }
+
+        function initReveal() {
+            const obs = new IntersectionObserver(entries => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+            }, { threshold: 0.08 });
+            document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+        }
+
+        /* ============ 英雄带动画（环 + 计数器）============ */
+        function animateHero() {
+            animateCount(document.getElementById('focusRingValue'), serverData.focus, 1300, v => Math.round(v));
+            animateCount(document.getElementById('metricFocus'), serverData.focus, 1200, v => Math.round(v));
+            animateCount(document.getElementById('metricRecords'), serverData.todayRecords, 1200, v => Math.round(v));
+            animateCount(document.getElementById('metricTotal'), serverData.totalRecords, 1300, v => Math.round(v));
+            animateCount(document.getElementById('metricReports'), serverData.todayReports, 1200, v => Math.round(v));
+            // 专注环
+            const pct = Math.min(serverData.focus / FOCUS_GOAL, 1);
+            const C = 439.8;
+            setTimeout(() => { document.getElementById('focusRingFill').style.strokeDashoffset = C * (1 - pct); }, 250);
+        }
+
+        function animateCount(el, target, duration, fmt) {
+            const start = performance.now();
+            function tick(now) {
+                const p = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - p, 3);
+                el.textContent = fmt(target * eased);
+                if (p < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        }
+
+        /* ============ 日期与筛选 ============ */
         function initDates() {
             const today = new Date();
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
+            const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
             document.getElementById('startDate').value = weekAgo.toISOString().split('T')[0];
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            document.getElementById('startDate').addEventListener('change', loadData);
-            document.getElementById('endDate').addEventListener('change', loadData);
-            document.getElementById('tagFilter').addEventListener('change', loadData);
-            document.getElementById('searchInput').addEventListener('input', loadData);
+            ['startDate','endDate'].forEach(id => document.getElementById(id).addEventListener('change', () => { currentTimelinePage = 1; loadData(); }));
+            document.getElementById('tagFilter').addEventListener('change', () => { currentTimelinePage = 1; loadData(); });
+            document.getElementById('searchInput').addEventListener('input', () => { currentTimelinePage = 1; loadData(); });
         }
-        
+
         function quickFilter(type) {
             const today = new Date();
-            const start = document.getElementById('startDate');
-            const end = document.getElementById('endDate');
+            const start = document.getElementById('startDate'), end = document.getElementById('endDate');
             end.value = today.toISOString().split('T')[0];
             if (type === 'today') start.value = today.toISOString().split('T')[0];
             else if (type === 'week') { const d = new Date(today); d.setDate(d.getDate()-7); start.value = d.toISOString().split('T')[0]; }
             else if (type === 'month') { const d = new Date(today); d.setDate(d.getDate()-30); start.value = d.toISOString().split('T')[0]; }
+            currentTimelinePage = 1;
             loadData();
         }
-        
-        function toggleChartMode(mode) {
+
+        /* ============ 图表 ============ */
+        function toggleChartMode(mode, btn) {
             isPieMode = mode === 'pie';
             document.getElementById('barChart').classList.toggle('active', !isPieMode);
             document.getElementById('pieChart').classList.toggle('active', isPieMode);
-            document.querySelectorAll('.chart-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
-            if (event && event.target) event.target.classList.add('active');
+            document.querySelectorAll('.seg-mini button').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
             updateDistribution();
         }
-        
-        function toggleValueMode() { isPercentageMode = !isPercentageMode; updateDistribution(); }
-        
+
+        function toggleValueMode(btn) {
+            isPercentageMode = !isPercentageMode;
+            if (btn) btn.querySelector('.vs-text').textContent = isPercentageMode ? '占比' : '时长';
+            updateDistribution();
+        }
+
+        /* ============ 数据加载 ============ */
         async function loadData() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -437,21 +658,7 @@
             const data = await response.json();
             if (data.success) { allRecords = data.records; updateStats(); updateDistribution(); updateTimeline(); }
         }
-        
-        function updateStats() {
-            const records = getFilteredRecords();
-            document.getElementById('recordCount').textContent = records.length;
-            let totalMinutes = 0;
-            records.forEach(r => { totalMinutes += parseFloat(r['持续时长(分钟)'] || 0); });
-            document.getElementById('totalDuration').textContent = (totalMinutes / 60).toFixed(1) + 'h';
-            if (records.length > 0) {
-                const times = records.map(r => r['时间']).filter(t => t);
-                if (times.length > 0) {
-                    document.getElementById('activeTime').textContent = `${times.reduce((a,b)=>a<b?a:b).substring(0,5)} — ${times.reduce((a,b)=>a>b?a:b).substring(0,5)}`;
-                }
-            } else { document.getElementById('activeTime').textContent = '--:-- — --:--'; }
-        }
-        
+
         function getFilteredRecords() {
             let records = [...allRecords];
             const tag = document.getElementById('tagFilter').value;
@@ -460,79 +667,158 @@
             if (keyword) records = records.filter(r => (r['工作描述'] || '').toLowerCase().includes(keyword));
             return records;
         }
-        
+
+        function updateStats() {
+            const records = getFilteredRecords();
+            document.getElementById('recordCount').textContent = records.length;
+            let totalMinutes = 0;
+            records.forEach(r => { totalMinutes += parseFloat(r['持续时长(分钟)'] || 0); });
+            document.getElementById('totalDuration').textContent = (totalMinutes / 60).toFixed(1) + 'h';
+            const times = records.map(r => r['时间']).filter(t => t);
+            document.getElementById('activeTime').textContent = times.length
+                ? `${times.reduce((a,b)=>a<b?a:b).substring(0,5)} — ${times.reduce((a,b)=>a>b?a:b).substring(0,5)}`
+                : '--:-- — --:--';
+        }
+
         function updateDistribution() {
             const records = getFilteredRecords();
             const typeHours = {}; let totalMinutes = 0;
-            records.forEach(r => { const type = r['工作类型'] || '其他'; const minutes = parseFloat(r['持续时长(分钟)'] || 0); typeHours[type] = (typeHours[type] || 0) + minutes; totalMinutes += minutes; });
-            const sorted = Object.entries(typeHours).sort((a, b) => b[1] - a[1]);
-            const barContainer = document.getElementById('barChart'); barContainer.innerHTML = '';
-            sorted.forEach(([type, minutes]) => {
-                const hours = minutes / 60; const percentage = totalMinutes > 0 ? (minutes / totalMinutes * 100) : 0; const color = TYPE_COLORS[type] || '#607D8B'; const value = isPercentageMode ? `${percentage.toFixed(1)}%` : `${hours.toFixed(1)}h`;
-                barContainer.innerHTML += `<div class="bar-row"><div class="bar-label" style="color:${color}">${type}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,percentage)}%;background:${color}"></div></div><div class="bar-value">${value}</div></div>`;
-            });
+            records.forEach(r => { const t = r['工作类型'] || '其他'; const m = parseFloat(r['持续时长(分钟)'] || 0); typeHours[t] = (typeHours[t] || 0) + m; totalMinutes += m; });
+            const sorted = Object.entries(typeHours).sort((a,b) => b[1] - a[1]);
+
+            const barContainer = document.getElementById('barChart');
+            if (sorted.length === 0) {
+                barContainer.innerHTML = '<div class="empty-state" style="width:100%"><i class="fas fa-inbox"></i>当前筛选条件下暂无数据</div>';
+            } else {
+                barContainer.innerHTML = sorted.map(([type, minutes], i) => {
+                    const hours = minutes / 60;
+                    const pct = totalMinutes > 0 ? (minutes / totalMinutes * 100) : 0;
+                    const color = TYPE_COLORS[type] || '#868e96';
+                    const value = isPercentageMode ? pct.toFixed(1) + '%' : hours.toFixed(1) + 'h';
+                    return `<div class="bar-row">
+                        <span class="bar-rank">${String(i+1).padStart(2,'0')}</span>
+                        <span class="bar-label" style="color:${color}">${type}</span>
+                        <div class="bar-track"><div class="bar-fill" data-w="${Math.max(3, pct)}" style="background:${color}"></div></div>
+                        <span class="bar-value">${value}</span>
+                    </div>`;
+                }).join('');
+                // 延迟触发动画
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    barContainer.querySelectorAll('.bar-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+                }));
+            }
+
             if (isPieMode && sorted.length > 0) {
                 const ctx = document.getElementById('pieCanvas').getContext('2d');
                 if (pieChart) pieChart.destroy();
-                pieChart = new Chart(ctx, { type: 'pie', data: { labels: sorted.map(([t])=>t), datasets: [{ data: sorted.map(([,m])=>isPercentageMode?(m/totalMinutes*100).toFixed(1):(m/60).toFixed(1)), backgroundColor: sorted.map(([t])=>TYPE_COLORS[t]||'#607D8B'), borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.raw}${isPercentageMode?'%':'h'}` } } } } });
+                pieChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: sorted.map(([t]) => t),
+                        datasets: [{
+                            data: sorted.map(([,m]) => isPercentageMode ? (m/totalMinutes*100).toFixed(1) : (m/60).toFixed(1)),
+                            backgroundColor: sorted.map(([t]) => TYPE_COLORS[t] || '#868e96'),
+                            borderWidth: 3, borderColor: '#fff', hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true, cutout: '58%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { padding: 16, font: { size: 12, family: 'Noto Sans SC' }, usePointStyle: true, pointStyle: 'circle' } },
+                            tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw}${isPercentageMode ? '%' : 'h'}` } }
+                        }
+                    }
+                });
             }
         }
-        
+
+        /* ============ 时间线 ============ */
         function updateTimeline() {
             const records = getFilteredRecords().reverse();
             const container = document.getElementById('timelineList');
-            const paginationContainer = document.getElementById('timelinePagination');
-            if (records.length === 0) { container.innerHTML = '<div class="empty-state">暂无记录</div>'; paginationContainer.innerHTML = ''; return; }
+            const pagination = document.getElementById('timelinePagination');
+            if (records.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i>暂无记录，调整筛选条件试试</div>';
+                pagination.innerHTML = '';
+                return;
+            }
             const totalPages = Math.ceil(records.length / timelinePerPage);
             if (currentTimelinePage > totalPages) currentTimelinePage = 1;
             const startIdx = (currentTimelinePage - 1) * timelinePerPage;
-            const endIdx = Math.min(startIdx + timelinePerPage, records.length);
-            const pageRecords = records.slice(startIdx, endIdx);
-            container.innerHTML = '';
-            pageRecords.forEach((record, index) => {
-                const time = record['时间'] || ''; const date = record['日期'] || ''; const workType = record['工作类型'] || '其他'; const description = record['工作描述'] || ''; const duration = parseFloat(record['持续时长(分钟)'] || 0); const color = TYPE_COLORS[workType] || '#607D8B';
+            const pageRecords = records.slice(startIdx, startIdx + timelinePerPage);
+
+            container.innerHTML = pageRecords.map((record, index) => {
+                const time = record['时间'] || ''; const date = record['日期'] || '';
+                const workType = record['工作类型'] || '其他'; const description = record['工作描述'] || '';
+                const duration = parseFloat(record['持续时长(分钟)'] || 0);
+                const color = TYPE_COLORS[workType] || '#868e96';
                 let timeRange = '';
-                if (time && duration > 0) { const [h,m] = time.split(':').map(Number); const endM = h*60+m+duration; timeRange = `${time.substring(0,5)} — ${String(Math.floor(endM/60)%24).padStart(2,'0')}:${String(Math.floor(endM%60)).padStart(2,'0')}`; }
-                let dateDisplay = date ? `${date.split('-')[1]}/${date.split('-')[2]}` : '';
-                container.innerHTML += `<div class="timeline-item"><div class="timeline-time">${dateDisplay}<br>${time.substring(0,5)}</div><div class="timeline-dot"><div class="dot" style="background:${color}"></div>${index<pageRecords.length-1?'<div class="line"></div>':''}</div><div class="timeline-content"><div class="timeline-desc">${description||'无描述'}</div><div class="timeline-tags"><span class="timeline-tag type" style="background:${color}">${workType}</span><span class="timeline-tag auto">自动记录</span>${timeRange?`<span class="timeline-tag time">${timeRange}</span>`:''}</div></div></div>`;
-            });
-            let html = `<span style="margin-right:15px;color:#666;font-size:13px;">共 ${records.length} 条</span><button class="page-btn" onclick="goToTimelinePage(${currentTimelinePage-1})" ${currentTimelinePage===1?'disabled':''}>&lt;</button>`;
-            for (let i = Math.max(1,currentTimelinePage-2); i <= Math.min(totalPages,currentTimelinePage+2); i++) { html += `<button class="page-btn ${i===currentTimelinePage?'active':''}" onclick="goToTimelinePage(${i})">${i}</button>`; }
-            html += `<button class="page-btn" onclick="goToTimelinePage(${currentTimelinePage+1})" ${currentTimelinePage===totalPages?'disabled':''}>&gt;</button>`;
-            paginationContainer.innerHTML = html;
+                if (time && duration > 0) {
+                    const [h,m] = time.split(':').map(Number); const endM = h*60 + m + duration;
+                    timeRange = `${time.substring(0,5)} — ${String(Math.floor(endM/60)%24).padStart(2,'0')}:${String(Math.floor(endM%60)).padStart(2,'0')}`;
+                }
+                const dateDisplay = date ? `${date.split('-')[1]}/${date.split('-')[2]}` : '';
+                return `<div class="timeline-item" style="animation-delay:${index * 0.04}s">
+                    <div class="timeline-time">${dateDisplay}<br>${time.substring(0,5)}</div>
+                    <div class="timeline-dot"><div class="dot" style="background:${color}"></div>${index < pageRecords.length - 1 ? '<div class="line"></div>' : ''}</div>
+                    <div class="timeline-content">
+                        <div class="timeline-desc">${description || '无描述'}</div>
+                        <div class="timeline-tags">
+                            <span class="timeline-tag type" style="background:${color}">${workType}</span>
+                            <span class="timeline-tag auto"><i class="fas fa-robot"></i> 自动记录</span>
+                            ${timeRange ? `<span class="timeline-tag time"><i class="far fa-clock"></i> ${timeRange}</span>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            pagination.innerHTML = buildPagination(totalPages, currentTimelinePage, 'goToTimelinePage', records.length);
         }
-        
+
+        function buildPagination(totalPages, current, fnName, total) {
+            let html = `<span class="page-info">共 ${total} 条</span>`;
+            html += `<button class="page-btn" onclick="${fnName}(${current-1})" ${current===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+            let s = Math.max(1, current - 2), e = Math.min(totalPages, current + 2);
+            if (s > 1) { html += `<button class="page-btn" onclick="${fnName}(1)">1</button>`; if (s > 2) html += `<span class="page-info">…</span>`; }
+            for (let i = s; i <= e; i++) html += `<button class="page-btn ${i===current?'active':''}" onclick="${fnName}(${i})">${i}</button>`;
+            if (e < totalPages) { if (e < totalPages - 1) html += `<span class="page-info">…</span>`; html += `<button class="page-btn" onclick="${fnName}(${totalPages})">${totalPages}</button>`; }
+            html += `<button class="page-btn" onclick="${fnName}(${current+1})" ${current===totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+            return html;
+        }
+
         function goToTimelinePage(page) {
             const records = getFilteredRecords().reverse();
             const totalPages = Math.ceil(records.length / timelinePerPage);
             if (page < 1 || page > totalPages) return;
             currentTimelinePage = page; updateTimeline();
+            document.getElementById('timelineList').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-        
+
+        /* ============ 报告 ============ */
         async function loadReports() {
             const response = await fetch(`/api/user/reports/${encodeURIComponent(email)}`);
             const data = await response.json();
-            if (data.success) { allReports = data.reports; filteredReports = [...allReports]; renderReports(); }
+            if (data.success) {
+                allReports = data.reports; filteredReports = [...allReports];
+                document.getElementById('reportCountBadge').textContent = allReports.length + ' 份';
+                renderReports();
+            }
         }
-        
+
         function filterReportType(type, btn) {
             currentReportType = type;
             document.querySelectorAll('.type-group .type-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             filterReports();
         }
-        
+
         function filterReports() {
             const keyword = document.getElementById('reportSearch').value.trim().toLowerCase();
-            const startDate = document.getElementById('reportStartDate') ? document.getElementById('reportStartDate').value : '';
-            const endDate = document.getElementById('reportEndDate') ? document.getElementById('reportEndDate').value : '';
-            
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
             filteredReports = allReports.filter(r => {
-                // 类型筛选
                 if (currentReportType !== '全部' && r.type !== currentReportType) return false;
-                // 关键词搜索
                 if (keyword && !r.title.toLowerCase().includes(keyword)) return false;
-                // 日期筛选
                 if (startDate && r.date < startDate) return false;
                 if (endDate && r.date > endDate) return false;
                 return true;
@@ -540,164 +826,126 @@
             currentReportPage = 1;
             renderReports();
         }
-        
+
         function renderReports() {
             const container = document.getElementById('reportList');
+            const pagination = document.getElementById('reportPagination');
             const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
             const pageReports = filteredReports.slice((currentReportPage-1)*reportsPerPage, currentReportPage*reportsPerPage);
-            if (pageReports.length === 0) { container.innerHTML = '<div class="empty-state">暂无报告</div>'; document.getElementById('reportPagination').innerHTML = ''; return; }
-            container.innerHTML = pageReports.map(r => `<div class="report-item"><div class="report-info"><div class="report-title">${r.title}<span class="report-type-tag ${r.type}">${r.type}</span></div><div class="report-meta"><span>📅 ${r.time||r.date}</span><span>📝 ${r.word_count||0} 字</span></div></div><div class="report-actions"><button class="action-btn view" onclick="viewReport('${r.filename}')">查看</button></div></div>`).join('');
-            let html = '';
-            if (totalPages > 1) {
-                html = `<button class="page-btn" onclick="goToReportPage(${currentReportPage-1})" ${currentReportPage===1?'disabled':''}>&lt;</button>`;
-                for (let i = 1; i <= totalPages; i++) html += `<button class="page-btn ${i===currentReportPage?'active':''}" onclick="goToReportPage(${i})">${i}</button>`;
-                html += `<button class="page-btn" onclick="goToReportPage(${currentReportPage+1})" ${currentReportPage===totalPages?'disabled':''}>&gt;</button>`;
+            if (pageReports.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-file-circle-plus"></i>暂无报告，去生成第一份吧</div>';
+                pagination.innerHTML = '';
+                return;
             }
-            document.getElementById('reportPagination').innerHTML = html;
+            container.innerHTML = pageReports.map(r => `
+                <div class="report-item">
+                    <div class="report-info">
+                        <div class="report-title">${r.title}<span class="report-type-tag ${r.type}">${r.type}</span></div>
+                        <div class="report-meta"><span><i class="far fa-calendar"></i> ${r.time || r.date}</span><span><i class="fas fa-pen-nib"></i> ${r.word_count || 0} 字</span></div>
+                    </div>
+                    <button class="action-btn" onclick="viewReport('${r.filename}')"><i class="fas fa-eye"></i> 查看</button>
+                </div>`).join('');
+            pagination.innerHTML = totalPages > 1 ? buildPagination(totalPages, currentReportPage, 'goToReportPage', filteredReports.length) : '';
         }
-        
-        function goToReportPage(page) { const totalPages = Math.ceil(filteredReports.length / reportsPerPage); if (page<1||page>totalPages) return; currentReportPage = page; renderReports(); }
-        
+
+        function goToReportPage(page) {
+            const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentReportPage = page; renderReports();
+        }
+
         async function viewReport(filename) {
             const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`);
             const data = await response.json();
-            if (data.success) { document.getElementById('modalTitle').textContent = data.title; document.getElementById('modalContent').innerHTML = data.content; document.getElementById('reportModal').classList.add('active'); }
+            if (data.success) {
+                document.getElementById('modalTitle').textContent = data.title;
+                document.getElementById('modalContent').innerHTML = data.content;
+                document.getElementById('reportModal').classList.add('active');
+            }
         }
-        
+
         function closeModal() { document.getElementById('reportModal').classList.remove('active'); }
         document.getElementById('reportModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
-        
-        // 获取存储空间信息
+
+        /* ============ 存储空间 ============ */
         async function loadStorageInfo() {
             try {
                 const response = await fetch(`/api/user/storage/${encodeURIComponent(email)}`);
                 const data = await response.json();
                 if (data.success) {
-                    // 更新截图记录存储空间
-                    const recordsStorage = data.records_storage;
-                    const recordsBarFill = document.getElementById('recordsStorageBarFill');
-                    const recordsStorageUsed = document.getElementById('recordsStorageUsed');
-                    
-                    recordsBarFill.style.width = `${recordsStorage.percentage}%`;
-                    recordsStorageUsed.textContent = `已使用: ${recordsStorage.current_mb} MB`;
-                    
-                    recordsBarFill.className = 'storage-bar-fill';
-                    if (recordsStorage.percentage < 60) {
-                        recordsBarFill.classList.add('safe');
-                    } else if (recordsStorage.percentage < 80) {
-                        recordsBarFill.classList.add('warning');
-                    } else {
-                        recordsBarFill.classList.add('danger');
-                    }
-                    
-                    // 更新报告存储空间
-                    const reportStorage = data.report_storage;
-                    const reportBarFill = document.getElementById('reportStorageBarFill');
-                    const reportStorageUsed = document.getElementById('reportStorageUsed');
-                    
-                    reportBarFill.style.width = `${reportStorage.percentage}%`;
-                    reportStorageUsed.textContent = `已使用: ${reportStorage.current_mb} MB`;
-                    
-                    reportBarFill.className = 'storage-bar-fill';
-                    if (reportStorage.percentage < 60) {
-                        reportBarFill.classList.add('safe');
-                    } else if (reportStorage.percentage < 80) {
-                        reportBarFill.classList.add('warning');
-                    } else {
-                        reportBarFill.classList.add('danger');
-                    }
+                    applyGauge('recordsStorageBarFill', 'recordsStorageUsed', data.records_storage);
+                    applyGauge('reportStorageBarFill', 'reportStorageUsed', data.report_storage);
                 }
-            } catch (error) {
-                console.log('获取存储信息失败:', error);
-            }
+            } catch (e) { console.log('获取存储信息失败:', e); }
         }
-        
-        // 修改密码相关
+
+        function applyGauge(fillId, textId, storage) {
+            const fill = document.getElementById(fillId);
+            const text = document.getElementById(textId);
+            fill.style.width = storage.percentage + '%';
+            text.textContent = `${storage.current_mb} / ${storage.max_mb} MB`;
+            fill.className = 'gauge-fill ' + (storage.percentage < 60 ? 'safe' : storage.percentage < 80 ? 'warning' : 'danger');
+        }
+
+        /* ============ 修改密码 ============ */
         function showChangePasswordModal() {
             document.getElementById('changePasswordModal').classList.add('active');
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
+            ['currentPassword','newPassword','confirmPassword'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('changePasswordError').textContent = '';
             document.getElementById('changePasswordSuccess').textContent = '';
         }
-        
-        function closeChangePasswordModal() {
-            document.getElementById('changePasswordModal').classList.remove('active');
-        }
-        
+        function closeChangePasswordModal() { document.getElementById('changePasswordModal').classList.remove('active'); }
+        document.getElementById('changePasswordModal').addEventListener('click', function(e) { if (e.target === this) closeChangePasswordModal(); });
+
         async function changePassword() {
             const currentPassword = document.getElementById('currentPassword').value;
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const errorEl = document.getElementById('changePasswordError');
             const successEl = document.getElementById('changePasswordSuccess');
-            
-            errorEl.textContent = '';
-            successEl.textContent = '';
-            
-            if (!currentPassword || !newPassword || !confirmPassword) {
-                errorEl.textContent = '请填写完整信息';
-                return;
-            }
-            
-            if (newPassword.length < 6) {
-                errorEl.textContent = '新密码至少需要6位';
-                return;
-            }
-            
-            if (newPassword !== confirmPassword) {
-                errorEl.textContent = '两次输入的新密码不一致';
-                return;
-            }
-            
-            if (currentPassword === newPassword) {
-                errorEl.textContent = '新密码不能与当前密码相同';
-                return;
-            }
-            
+            errorEl.textContent = ''; successEl.textContent = '';
+
+            if (!currentPassword || !newPassword || !confirmPassword) { errorEl.textContent = '请填写完整信息'; return; }
+            if (newPassword.length < 6) { errorEl.textContent = '新密码至少需要 6 位'; return; }
+            if (newPassword !== confirmPassword) { errorEl.textContent = '两次输入的新密码不一致'; return; }
+            if (currentPassword === newPassword) { errorEl.textContent = '新密码不能与当前密码相同'; return; }
+
             try {
                 const response = await fetch('/api/user/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: email,
-                        current_password: currentPassword,
-                        new_password: newPassword
-                    })
+                    body: JSON.stringify({ email, current_password: currentPassword, new_password: newPassword })
                 });
                 const data = await response.json();
-                
                 if (data.success) {
-                    successEl.textContent = '密码修改成功！';
-                    setTimeout(() => {
-                        closeChangePasswordModal();
-                    }, 1500);
-                } else {
-                    errorEl.textContent = data.message;
-                }
-            } catch (error) {
-                errorEl.textContent = '修改失败，请稍后重试';
-            }
+                    successEl.textContent = '✓ 密码修改成功！';
+                    setTimeout(closeChangePasswordModal, 1500);
+                } else { errorEl.textContent = data.message; }
+            } catch (e) { errorEl.textContent = '修改失败，请稍后重试'; }
         }
-        
+
+        /* ============ 刷新 / 退出 ============ */
         async function refreshData() {
-            const btn = document.getElementById('refreshBtn'); btn.textContent = '刷新中...';
-            await loadData(); await loadReports(); await loadStorageInfo();
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('spin');
+            await Promise.all([loadData(), loadReports(), loadStorageInfo()]);
             const response = await fetch(`/api/user/stats/${encodeURIComponent(email)}`);
             const data = await response.json();
             if (data.success) {
-                const statCards = document.querySelectorAll('.stat-card .number');
-                if (statCards.length >= 3) { statCards[0].textContent = data.stats.today_focus_minutes; statCards[1].textContent = data.stats.today_records; statCards[2].textContent = data.stats.total_records; }
+                animateCount(document.getElementById('metricFocus'), data.stats.today_focus_minutes, 900, v => Math.round(v));
+                animateCount(document.getElementById('metricRecords'), data.stats.today_records, 900, v => Math.round(v));
+                animateCount(document.getElementById('metricTotal'), data.stats.total_records, 900, v => Math.round(v));
+                animateCount(document.getElementById('metricReports'), data.stats.today_reports, 900, v => Math.round(v));
+                animateCount(document.getElementById('focusRingValue'), data.stats.today_focus_minutes, 900, v => Math.round(v));
+                const pct = Math.min(data.stats.today_focus_minutes / FOCUS_GOAL, 1);
+                document.getElementById('focusRingFill').style.strokeDashoffset = 439.8 * (1 - pct);
             }
-            btn.textContent = '刷新数据';
+            setTimeout(() => icon.classList.remove('spin'), 600);
         }
-        
+
         function logout() {
             fetch('/api/logout', { method: 'POST' }).then(() => { window.location.href = '/'; });
         }
-        
-        initDates(); loadData(); loadReports(); loadStorageInfo();
     </script>
 </body>
 </html>
