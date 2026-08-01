@@ -3,490 +3,492 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录/注册 - 绿豆蛙日报助手</title>
+    <title>登录 / 注册 - 绿豆蛙日报助手</title>
     <link rel="icon" href="/favicon.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        *, *:before, *:after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f3f7f2;
+            --ink: #16301f;
+            --ink-soft: #4a6253;
+            --ink-faint: #8aa093;
+            --green: #2f9e44;
+            --green-deep: #1f6f31;
+            --green-dark: #122b1c;
+            --green-mid: #1c4229;
+            --lime: #a9e34b;
+            --paper: #ffffff;
+            --line: #dde8dc;
+            --danger: #e03131;
+            --font-display: 'Noto Serif SC', serif;
+            --font-body: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --ease: cubic-bezier(0.4, 0, 0.2, 1);
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
         }
 
+        html, body { height: 100%; }
         body {
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--bg);
+            overflow: hidden;
         }
+        input, button { font-family: inherit; border: none; outline: none; background: none; }
+        a { text-decoration: none; }
 
-        input, button {
-            border: none;
-            outline: none;
-            background: none;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-        }
-
+        /* ============ 返回首页 ============ */
         .back-link {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            color: #2e7d32;
-            text-decoration: none;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            z-index: 100;
+            position: fixed; top: 26px; left: 28px; z-index: 60;
+            display: inline-flex; align-items: center; gap: 9px;
+            color: rgba(255,255,255,0.75); font-size: 0.88rem; font-weight: 500;
+            padding: 9px 18px 9px 14px; border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(8px); transition: all 0.3s var(--ease);
+        }
+        .back-link i { font-size: 0.8rem; transition: transform 0.3s var(--ease); }
+        .back-link:hover { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.35); }
+        .back-link:hover i { transform: translateX(-4px); }
+
+        /* ============ 场景布局 ============ */
+        .scene { display: grid; grid-template-columns: 46% 54%; height: 100vh; }
+
+        /* ============ 左侧品牌面板 ============ */
+        .brand-panel {
+            position: relative; overflow: hidden;
+            background: linear-gradient(160deg, var(--green-dark) 0%, var(--green-mid) 55%, #235c36 100%);
+            display: flex; align-items: center; justify-content: center;
+            padding: 70px 56px;
+        }
+        /* 网格底纹 */
+        .brand-grid {
+            position: absolute; inset: 0; opacity: 0.5;
+            background-image:
+                linear-gradient(rgba(169,227,75,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(169,227,75,0.05) 1px, transparent 1px);
+            background-size: 52px 52px;
+            mask-image: radial-gradient(ellipse 90% 80% at 40% 40%, #000 20%, transparent 80%);
+        }
+        /* 漂浮光斑 */
+        .orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.55; animation: orbDrift 14s ease-in-out infinite; }
+        .orb-a { width: 380px; height: 380px; background: rgba(47,158,68,0.5); top: -120px; right: -100px; }
+        .orb-b { width: 300px; height: 300px; background: rgba(169,227,75,0.28); bottom: -100px; left: -80px; animation-delay: -6s; }
+        @keyframes orbDrift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-30px,36px) scale(1.12); } }
+
+        /* 上升粒子 */
+        .particles { position: absolute; inset: 0; overflow: hidden; }
+        .particles i {
+            position: absolute; bottom: -12px; width: 5px; height: 5px; border-radius: 50%;
+            background: rgba(169,227,75,0.55); animation: rise linear infinite;
+        }
+        @keyframes rise {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            12% { opacity: 0.9; }
+            100% { transform: translateY(-105vh) translateX(26px); opacity: 0; }
         }
 
-        .back-link:hover {
-            text-decoration: underline;
+        .brand-content { position: relative; z-index: 2; max-width: 480px; width: 100%; }
+
+        .brand-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 46px; animation: fadeUp 0.8s var(--ease-out) both; }
+        .brand-logo img {
+            width: 52px; height: 52px; border-radius: 50%; object-fit: cover;
+            box-shadow: 0 0 0 4px rgba(169,227,75,0.22), 0 8px 24px rgba(0,0,0,0.35);
+            animation: logoBreath 4s ease-in-out infinite;
+        }
+        @keyframes logoBreath { 0%,100% { box-shadow: 0 0 0 4px rgba(169,227,75,0.22), 0 8px 24px rgba(0,0,0,0.35);} 50% { box-shadow: 0 0 0 8px rgba(169,227,75,0.12), 0 8px 24px rgba(0,0,0,0.35);} }
+        .brand-logo span { font-family: var(--font-display); font-weight: 900; font-size: 1.3rem; color: #fff; }
+        .brand-logo span em { font-style: normal; color: var(--lime); }
+
+        .brand-eyebrow {
+            display: inline-flex; align-items: center; gap: 9px;
+            color: var(--lime); font-family: var(--font-mono); font-size: 0.74rem;
+            font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+            margin-bottom: 20px; animation: fadeUp 0.8s var(--ease-out) 0.08s both;
+        }
+        .brand-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); position: relative; }
+        .brand-eyebrow .dot::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid var(--lime); animation:pulse 1.8s ease-out infinite; }
+        @keyframes pulse { 0%{transform:scale(.5);opacity:.9} 100%{transform:scale(1.5);opacity:0} }
+
+        .brand-headline {
+            font-family: var(--font-display); font-weight: 900; color: #fff;
+            font-size: clamp(2rem, 3.4vw, 2.9rem); line-height: 1.3; letter-spacing: -0.01em;
+            margin-bottom: 18px; animation: fadeUp 0.8s var(--ease-out) 0.16s both;
+        }
+        .brand-headline .hl { color: var(--lime); position: relative; white-space: nowrap; }
+        .brand-headline .hl::after { content:''; position:absolute; left:-3%; right:-3%; bottom:8%; height:30%; background:rgba(169,227,75,0.22); border-radius:5px; transform:skew(-8deg); z-index:-1; }
+        .brand-sub { color: rgba(255,255,255,0.66); font-size: 0.98rem; line-height: 1.8; margin-bottom: 40px; animation: fadeUp 0.8s var(--ease-out) 0.24s both; }
+
+        /* 实时识别模拟卡片 */
+        .live-sim {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; padding: 18px 18px 14px; backdrop-filter: blur(6px);
+            margin-bottom: 40px; animation: fadeUp 0.8s var(--ease-out) 0.32s both;
+        }
+        .live-sim-head { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+        .live-sim-head .rec { width: 8px; height: 8px; border-radius: 50%; background: #ff6b6b; animation: blink 1.2s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0.25; } }
+        .live-sim-head span { color: rgba(255,255,255,0.7); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; }
+        .live-sim-head .scan-line { margin-left: auto; font-family: var(--font-mono); font-size: 0.68rem; color: var(--lime); }
+        .sim-feed { display: flex; flex-direction: column; gap: 9px; min-height: 118px; }
+        .sim-card {
+            display: flex; align-items: center; gap: 11px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+            border-left: 3px solid var(--sc, var(--green)); border-radius: 10px; padding: 9px 12px;
+            animation: simIn 0.5s var(--ease-out);
+        }
+        @keyframes simIn { from { opacity: 0; transform: translateY(12px);} to { opacity:1; transform: translateY(0);} }
+        .sim-card .sc-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--sc, var(--green)); color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0; }
+        .sim-card .sc-body { flex: 1; min-width: 0; }
+        .sim-card .sc-title { color: #fff; font-size: 0.78rem; font-weight: 700; }
+        .sim-card .sc-desc { color: rgba(255,255,255,0.5); font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sim-card .sc-time { font-family: var(--font-mono); font-size: 0.64rem; color: rgba(255,255,255,0.45); flex-shrink: 0; }
+
+        .brand-stats { display: flex; gap: 34px; animation: fadeUp 0.8s var(--ease-out) 0.4s both; }
+        .brand-stats .bs { }
+        .brand-stats strong { display: block; font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; color: var(--lime); line-height: 1.1; }
+        .brand-stats span { font-size: 0.74rem; color: rgba(255,255,255,0.55); }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(26px);} to { opacity: 1; transform: translateY(0);} }
+
+        /* ============ 右侧表单面板 ============ */
+        .form-panel {
+            position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+            background: var(--bg); padding: 40px;
+        }
+        .form-panel::before {
+            content: ''; position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(47,158,68,0.045) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(47,158,68,0.045) 1px, transparent 1px);
+            background-size: 52px 52px;
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 80%);
+        }
+        .form-glow { position: absolute; width: 460px; height: 460px; border-radius: 50%; filter: blur(90px); opacity: 0.5; pointer-events: none; }
+        .form-glow-a { background: rgba(169,227,75,0.2); top: -160px; right: -140px; }
+        .form-glow-b { background: rgba(47,158,68,0.14); bottom: -180px; left: -140px; }
+
+        .form-wrap { position: relative; z-index: 2; width: 100%; max-width: 440px; }
+
+        .form-heading { margin-bottom: 30px; animation: fadeUp 0.7s var(--ease-out) 0.1s both; }
+        .form-heading h2 { font-family: var(--font-display); font-weight: 900; font-size: 1.9rem; letter-spacing: -0.01em; margin-bottom: 8px; }
+        .form-heading p { color: var(--ink-soft); font-size: 0.92rem; }
+
+        /* 分段控制器 */
+        .seg {
+            position: relative; display: grid; grid-template-columns: 1fr 1fr;
+            background: #e7efe6; border: 1px solid var(--line); border-radius: 14px; padding: 5px;
+            margin-bottom: 30px; animation: fadeUp 0.7s var(--ease-out) 0.18s both;
+        }
+        .seg-pill {
+            position: absolute; top: 5px; left: 5px; width: calc(50% - 5px); height: calc(100% - 10px);
+            background: var(--green-dark); border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(18,43,28,0.3);
+            transition: transform 0.45s var(--ease-out);
+        }
+        .seg.signup .seg-pill { transform: translateX(100%); }
+        .seg-btn {
+            position: relative; z-index: 1; padding: 11px 0; text-align: center;
+            font-size: 0.95rem; font-weight: 700; color: var(--ink-soft); cursor: pointer;
+            transition: color 0.3s var(--ease); border-radius: 10px;
+        }
+        .seg-btn.active { color: #fff; }
+
+        /* 表单滑动视窗 */
+        .forms-viewport { overflow: hidden; animation: fadeUp 0.7s var(--ease-out) 0.26s both; }
+        .forms-track { display: flex; width: 200%; transition: transform 0.55s var(--ease-out); }
+        .forms-track.show-signup { transform: translateX(-50%); }
+        .form-pane { width: 50%; padding: 4px 2px; }
+
+        .form-card {
+            background: var(--paper); border: 1px solid var(--line); border-radius: 20px;
+            padding: 34px 32px 30px; box-shadow: 0 18px 50px rgba(22,48,31,0.1);
         }
 
-        .dowebok {
-            overflow: hidden;
-            position: relative;
-            width: 900px;
-            height: 550px;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(46, 125, 50, 0.2);
+        /* 输入框组 */
+        .field { margin-bottom: 20px; }
+        .field-label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 8px; letter-spacing: 0.02em; }
+        .field-box {
+            display: flex; align-items: center; gap: 12px;
+            background: #f7faf7; border: 1.5px solid var(--line); border-radius: 12px;
+            padding: 0 16px; height: 50px; transition: all 0.3s var(--ease);
         }
+        .field-box i.lead { color: var(--ink-faint); font-size: 0.95rem; width: 18px; text-align: center; transition: color 0.3s var(--ease); }
+        .field-box input { flex: 1; height: 100%; font-size: 0.95rem; color: var(--ink); background: transparent; min-width: 0; }
+        .field-box input::placeholder { color: var(--ink-faint); }
+        .field-box:focus-within { border-color: var(--green); background: #fff; box-shadow: 0 0 0 4px rgba(47,158,68,0.13); }
+        .field-box:focus-within i.lead { color: var(--green); }
+        .field-box.shake { animation: shake 0.45s var(--ease); border-color: var(--danger); }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)} }
 
-        .form {
-            position: relative;
-            width: 640px;
-            height: 100%;
-            transition: transform 0.6s ease-in-out;
-            padding: 50px 30px 0;
-        }
+        .eye-btn { color: var(--ink-faint); cursor: pointer; font-size: 0.95rem; padding: 6px; transition: color 0.25s var(--ease); }
+        .eye-btn:hover { color: var(--green); }
 
-        .sub-cont {
-            overflow: hidden;
-            position: absolute;
-            left: 640px;
-            top: 0;
-            width: 900px;
-            height: 100%;
-            padding-left: 260px;
-            background: #fff;
-            transition: transform 0.6s ease-in-out;
+        /* 验证码行 */
+        .code-flex { display: flex; gap: 10px; }
+        .code-flex .field-box { flex: 1; }
+        .code-send {
+            flex-shrink: 0; height: 50px; padding: 0 18px; border-radius: 12px; cursor: pointer;
+            background: rgba(47,158,68,0.12); color: var(--green-deep); font-size: 0.85rem; font-weight: 700;
+            border: 1.5px solid rgba(47,158,68,0.3); transition: all 0.3s var(--ease); white-space: nowrap;
         }
+        .code-send:hover:not(:disabled) { background: var(--green); color: #fff; border-color: var(--green); box-shadow: 0 6px 16px rgba(47,158,68,0.3); }
+        .code-send:disabled { background: #eef2ee; color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
 
-        .dowebok.s--signup .sub-cont {
-            transform: translate3d(-640px, 0, 0);
+        /* 提交按钮 */
+        .submit-btn {
+            position: relative; overflow: hidden; width: 100%; height: 52px; margin-top: 6px;
+            border-radius: 13px; cursor: pointer;
+            background: linear-gradient(135deg, var(--green), var(--green-deep));
+            color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 0.06em;
+            box-shadow: 0 10px 26px rgba(47,158,68,0.35);
+            transition: all 0.3s var(--ease);
         }
+        .submit-btn::before {
+            content: ''; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
+            background: linear-gradient(100deg, transparent, rgba(255,255,255,0.32), transparent);
+            transform: skewX(-20deg); transition: left 0.6s var(--ease);
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(47,158,68,0.42); }
+        .submit-btn:hover::before { left: 130%; }
+        .submit-btn:active { transform: translateY(0); }
+        .submit-btn:disabled { opacity: 0.75; cursor: wait; transform: none; }
+        .submit-btn .spinner { display: none; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 9px; vertical-align: -4px; }
+        .submit-btn.loading .spinner { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        button {
-            display: block;
-            margin: 0 auto;
-            width: 260px;
-            height: 40px;
-            border-radius: 30px;
-            color: #fff;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+        /* 消息 */
+        .msg { min-height: 20px; font-size: 0.8rem; text-align: center; margin-top: 14px; transition: all 0.3s var(--ease); }
+        .msg.error { color: var(--danger); }
+        .msg.success { color: var(--green); font-weight: 600; }
 
-        .img {
-            overflow: hidden;
-            z-index: 2;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 260px;
-            height: 100%;
-            padding-top: 360px;
-        }
+        .form-foot { text-align: center; margin-top: 22px; font-size: 0.82rem; color: var(--ink-faint); animation: fadeUp 0.7s var(--ease-out) 0.34s both; }
+        .form-foot a { color: var(--green-deep); font-weight: 600; border-bottom: 1px solid transparent; transition: border-color 0.25s var(--ease); }
+        .form-foot a:hover { border-bottom-color: var(--green-deep); }
 
-        .img:before {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 900px;
-            height: 100%;
-            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-            transition: transform 0.6s ease-in-out;
+        /* ============ 响应式 ============ */
+        @media (max-width: 1024px) {
+            .scene { grid-template-columns: 1fr; }
+            .brand-panel { display: none; }
+            body { overflow: auto; }
+            .form-panel { min-height: 100vh; }
+            .back-link { color: var(--green-deep); border-color: rgba(47,158,68,0.3); background: rgba(255,255,255,0.7); }
         }
-
-        .img:after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .dowebok.s--signup .img:before {
-            transform: translate3d(640px, 0, 0);
-        }
-
-        .img__text {
-            z-index: 2;
-            position: absolute;
-            left: 0;
-            top: 50px;
-            width: 100%;
-            padding: 0 20px;
-            text-align: center;
-            color: #fff;
-            transition: transform 0.6s ease-in-out;
-        }
-
-        .img__text h2 {
-            margin-bottom: 10px;
-            font-weight: normal;
-        }
-
-        .img__text p {
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .dowebok.s--signup .img__text.m--up {
-            transform: translateX(520px);
-        }
-        .img__text.m--in {
-            transform: translateX(-520px);
-        }
-
-        .dowebok.s--signup .img__text.m--in {
-            transform: translateX(0);
-        }
-
-        .img__btn {
-            overflow: hidden;
-            z-index: 2;
-            position: relative;
-            width: 100px;
-            height: 36px;
-            margin: 0 auto;
-            background: transparent;
-            color: #fff;
-            text-transform: uppercase;
-            font-size: 15px;
-            cursor: pointer;
-        }
-        .img__btn:after {
-            content: '';
-            z-index: 2;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            border: 2px solid #fff;
-            border-radius: 30px;
-        }
-
-        .img__btn span {
-            position: absolute;
-            left: 0;
-            top: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.6s;
-        }
-
-        .img__btn span.m--in {
-            transform: translateY(-72px);
-        }
-
-        .dowebok.s--signup .img__btn span.m--in {
-            transform: translateY(0);
-        }
-
-        .dowebok.s--signup .img__btn span.m--up {
-            transform: translateY(72px);
-        }
-
-        h2 {
-            width: 100%;
-            font-size: 26px;
-            text-align: center;
-            color: #2e7d32;
-        }
-
-        label {
-            display: block;
-            width: 260px;
-            margin: 25px auto 0;
-            text-align: center;
-        }
-
-        label span {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-        }
-
-        input {
-            display: block;
-            width: 100%;
-            margin-top: 5px;
-            padding-bottom: 5px;
-            font-size: 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        input:focus {
-            border-bottom-color: #4caf50;
-        }
-
-        .forgot-pass {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-        }
-
-        .forgot-pass a {
-            color: #999;
-        }
-
-        .submit {
-            margin-top: 40px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        .submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
-        }
-
-        .fb-btn {
-            border: 2px solid #e0e0e0;
-            color: #666;
-        }
-        .fb-btn:hover {
-            border-color: #4caf50;
-            color: #4caf50;
-        }
-
-        .sign-in {
-            transition-timing-function: ease-out;
-        }
-        .dowebok.s--signup .sign-in {
-            transition-timing-function: ease-in-out;
-            transition-duration: 0.6s;
-            transform: translate3d(640px, 0, 0);
-        }
-
-        .sign-up {
-            transform: translate3d(-900px, 0, 0);
-        }
-        .dowebok.s--signup .sign-up {
-            transform: translate3d(0, 0, 0);
-        }
-
-        .error-msg {
-            color: #ef5350;
-            font-size: 12px;
-            text-align: center;
-            margin-top: 10px;
-            min-height: 18px;
-        }
-
-        .success-msg {
-            color: #4caf50;
-            font-size: 12px;
-            text-align: center;
-            margin-top: 10px;
-            min-height: 18px;
-        }
-
-        .code-row {
-            display: block;
-            width: 260px;
-            margin: 25px auto 0;
-            text-align: center;
-        }
-
-        .code-row .code-input-wrapper {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-        }
-
-        .code-row label {
-            flex: 1;
-            margin: 0;
-            text-align: center;
-        }
-
-        .code-row label span {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-        }
-
-        .code-row input {
-            display: block;
-            width: 100%;
-            margin-top: 5px;
-            padding-bottom: 5px;
-            font-size: 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        .code-btn {
-            width: auto !important;
-            padding: 0 15px;
-            height: 30px;
-            font-size: 12px;
-            background: #e8f5e9;
-            color: #4caf50;
-            border-radius: 4px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .code-btn:hover {
-            background: #c8e6c9;
-        }
-
-        .code-btn:disabled {
-            background: #f5f5f5;
-            color: #999;
-            cursor: not-allowed;
-        }
-
-        @media (max-width: 768px) {
-            .dowebok {
-                width: 100%;
-                height: auto;
-                min-height: 100vh;
-                border-radius: 0;
-            }
-            
-            .form {
-                width: 100%;
-                padding: 80px 30px 30px;
-            }
-            
-            .sub-cont {
-                left: 100%;
-                width: 100%;
-                padding-left: 0;
-            }
-            
-            .dowebok.s--signup .sub-cont {
-                transform: translate3d(-100%, 0, 0);
-            }
-            
-            .dowebok.s--signup .sign-in {
-                transform: translate3d(100%, 0, 0);
-            }
-            
-            .img {
-                display: none;
-            }
+        @media (max-width: 480px) {
+            .form-panel { padding: 24px 18px; }
+            .form-card { padding: 28px 22px 24px; }
+            .code-flex { flex-direction: column; }
+            .code-send { height: 46px; }
         }
     </style>
 </head>
 <body>
-    <a href="/" class="back-link">
-        <i class="fas fa-arrow-left"></i> 返回首页
-    </a>
+    <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> 返回首页</a>
 
-    <div class="dowebok">
-        <!-- 登录表单 -->
-        <div class="form sign-in">
-            <h2>欢迎回来</h2>
-            <label>
-                <span>邮箱</span>
-                <input type="email" id="loginEmail" placeholder="请输入邮箱" />
-            </label>
-            <label>
-                <span>密码</span>
-                <input type="password" id="loginPassword" placeholder="请输入密码" />
-            </label>
-            <div id="loginError" class="error-msg"></div>
-            <button type="button" class="submit" onclick="handleLogin()">登 录</button>
-        </div>
-        
-        <div class="sub-cont">
-            <div class="img">
-                <div class="img__text m--up">
-                    <h2>还未注册？</h2>
-                    <p>立即注册，开始智能工作记录之旅！</p>
+    <div class="scene">
+        <!-- ============ 左侧品牌面板 ============ -->
+        <aside class="brand-panel">
+            <div class="brand-grid"></div>
+            <div class="orb orb-a"></div>
+            <div class="orb orb-b"></div>
+            <div class="particles" id="particles"></div>
+
+            <div class="brand-content">
+                <div class="brand-logo">
+                    <img src="/favicon.jpg" alt="绿豆蛙">
+                    <span>绿豆蛙<em>日报助手</em></span>
                 </div>
-                <div class="img__text m--in">
-                    <h2>已有帐号？</h2>
-                    <p>有帐号就登录吧，好久不见了！</p>
+
+                <div class="brand-eyebrow"><span class="dot"></span> AI 视觉 · 自动工作记录</div>
+
+                <h1 class="brand-headline">让 AI 替你<br><span class="hl">记住</span>这一天</h1>
+                <p class="brand-sub">
+                    登录后即可跨设备同步工作轨迹，随时回看你的时间都去哪儿了，
+                    日报周报一键生成。
+                </p>
+
+                <div class="live-sim">
+                    <div class="live-sim-head">
+                        <span class="rec"></span>
+                        <span>绿豆蛙正在工作</span>
+                        <span class="scan-line" id="scanLine">SCANNING…</span>
+                    </div>
+                    <div class="sim-feed" id="simFeed"></div>
                 </div>
-                <div class="img__btn">
-                    <span class="m--up">注 册</span>
-                    <span class="m--in">登 录</span>
+
+                <div class="brand-stats">
+                    <div class="bs"><strong>14</strong><span>种工作类型</span></div>
+                    <div class="bs"><strong>24h</strong><span>全天候记录</span></div>
+                    <div class="bs"><strong>100%</strong><span>数据本地留存</span></div>
                 </div>
             </div>
-            
-            <!-- 注册表单 -->
-            <div class="form sign-up">
-                <h2>立即注册</h2>
-                <label>
-                    <span>邮箱</span>
-                    <input type="email" id="regEmail" placeholder="请输入邮箱" />
-                </label>
-                <div class="code-row">
-                    <span>验证码</span>
-                    <div class="code-input-wrapper">
-                        <input type="text" id="regCode" placeholder="请输入验证码" maxlength="6" />
-                        <button type="button" class="code-btn" id="sendCodeBtn" onclick="sendCode()">发送验证码</button>
+        </aside>
+
+        <!-- ============ 右侧表单面板 ============ -->
+        <main class="form-panel">
+            <div class="form-glow form-glow-a"></div>
+            <div class="form-glow form-glow-b"></div>
+
+            <div class="form-wrap">
+                <div class="form-heading">
+                    <h2 id="formTitle">欢迎回来 👋</h2>
+                    <p id="formSub">登录账号，继续你的工作记录之旅</p>
+                </div>
+
+                <div class="seg" id="seg">
+                    <div class="seg-pill"></div>
+                    <div class="seg-btn active" id="segLogin" onclick="switchMode(false)">登 录</div>
+                    <div class="seg-btn" id="segSignup" onclick="switchMode(true)">注 册</div>
+                </div>
+
+                <div class="forms-viewport">
+                    <div class="forms-track" id="formsTrack">
+                        <!-- ===== 登录表单 ===== -->
+                        <div class="form-pane">
+                            <div class="form-card">
+                                <div class="field">
+                                    <label class="field-label" for="loginEmail">邮箱</label>
+                                    <div class="field-box">
+                                        <i class="fas fa-envelope lead"></i>
+                                        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="field-label" for="loginPassword">密码</label>
+                                    <div class="field-box">
+                                        <i class="fas fa-lock lead"></i>
+                                        <input type="password" id="loginPassword" placeholder="请输入密码" autocomplete="current-password">
+                                        <i class="fas fa-eye eye-btn" onclick="togglePwd(this, 'loginPassword')"></i>
+                                    </div>
+                                </div>
+                                <button type="button" class="submit-btn" id="loginBtn" onclick="handleLogin()">
+                                    <span class="spinner"></span><span class="btn-text">登 录</span>
+                                </button>
+                                <div id="loginError" class="msg"></div>
+                            </div>
+                        </div>
+
+                        <!-- ===== 注册表单 ===== -->
+                        <div class="form-pane">
+                            <div class="form-card">
+                                <div class="field">
+                                    <label class="field-label" for="regEmail">邮箱</label>
+                                    <div class="field-box">
+                                        <i class="fas fa-envelope lead"></i>
+                                        <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="field-label" for="regCode">验证码</label>
+                                    <div class="code-flex">
+                                        <div class="field-box">
+                                            <i class="fas fa-shield-alt lead"></i>
+                                            <input type="text" id="regCode" placeholder="6 位验证码" maxlength="6">
+                                        </div>
+                                        <button type="button" class="code-send" id="sendCodeBtn" onclick="sendCode()">发送验证码</button>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="field-label" for="regPassword">密码</label>
+                                    <div class="field-box">
+                                        <i class="fas fa-lock lead"></i>
+                                        <input type="password" id="regPassword" placeholder="至少 6 位密码" autocomplete="new-password">
+                                        <i class="fas fa-eye eye-btn" onclick="togglePwd(this, 'regPassword')"></i>
+                                    </div>
+                                </div>
+                                <button type="button" class="submit-btn" id="regBtn" onclick="handleRegister()">
+                                    <span class="spinner"></span><span class="btn-text">创建账号</span>
+                                </button>
+                                <div id="regError" class="msg"></div>
+                                <div id="regSuccess" class="msg"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <label>
-                    <span>密码</span>
-                    <input type="password" id="regPassword" placeholder="请设置密码（至少6位）" />
-                </label>
-                <div id="regError" class="error-msg"></div>
-                <div id="regSuccess" class="success-msg"></div>
-                <button type="button" class="submit" onclick="handleRegister()">注 册</button>
+
+                <div class="form-foot">
+                    继续即表示你同意 <a href="javascript:void(0)">服务条款</a> 与 <a href="javascript:void(0)">隐私政策</a>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
-        // 切换登录注册
-        document.querySelector('.img__btn').addEventListener('click', function() {
-            document.querySelector('.dowebok').classList.toggle('s--signup');
-            document.getElementById('loginError').textContent = '';
-            document.getElementById('regError').textContent = '';
-            document.getElementById('regSuccess').textContent = '';
-        });
+        /* ============ 模式切换（登录 / 注册）============ */
+        function switchMode(isSignup) {
+            document.getElementById('seg').classList.toggle('signup', isSignup);
+            document.getElementById('formsTrack').classList.toggle('show-signup', isSignup);
+            document.getElementById('segLogin').classList.toggle('active', !isSignup);
+            document.getElementById('segSignup').classList.toggle('active', isSignup);
 
-        // 检查URL hash，如果是#register则切换到注册页面
-        if (window.location.hash === '#register') {
-            document.querySelector('.dowebok').classList.add('s--signup');
+            const title = document.getElementById('formTitle');
+            const sub = document.getElementById('formSub');
+            if (isSignup) {
+                title.textContent = '创建账号 🌱';
+                sub.textContent = '几步即可开始，让绿豆蛙为你记录工作';
+            } else {
+                title.textContent = '欢迎回来 👋';
+                sub.textContent = '登录账号，继续你的工作记录之旅';
+            }
+            clearMsgs();
         }
 
-        // 发送验证码
+        function clearMsgs() {
+            setMsg('loginError', '', 'error');
+            setMsg('regError', '', 'error');
+            setMsg('regSuccess', '', 'success');
+        }
+
+        function setMsg(id, text, type) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            el.className = 'msg' + (text ? ' ' + type : '');
+        }
+
+        function shakeField(inputId) {
+            const box = document.getElementById(inputId).closest('.field-box');
+            if (!box) return;
+            box.classList.remove('shake');
+            void box.offsetWidth;
+            box.classList.add('shake');
+        }
+
+        /* URL hash：#register 直达注册 */
+        if (window.location.hash === '#register') switchMode(true);
+
+        /* ============ 密码可见切换 ============ */
+        function togglePwd(icon, inputId) {
+            const input = document.getElementById(inputId);
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            icon.classList.toggle('fa-eye', !show);
+            icon.classList.toggle('fa-eye-slash', show);
+        }
+
+        /* ============ 按钮加载态 ============ */
+        function setLoading(btnId, loading, text) {
+            const btn = document.getElementById(btnId);
+            btn.classList.toggle('loading', loading);
+            btn.disabled = loading;
+            if (text) btn.querySelector('.btn-text').textContent = text;
+        }
+
+        /* ============ 发送验证码 ============ */
         async function sendCode() {
             const email = document.getElementById('regEmail').value.trim();
             if (!email) {
-                document.getElementById('regError').textContent = '请输入邮箱地址';
+                setMsg('regError', '请输入邮箱地址', 'error');
+                shakeField('regEmail');
                 return;
             }
 
             const btn = document.getElementById('sendCodeBtn');
             btn.disabled = true;
-            btn.textContent = '发送中...';
+            btn.textContent = '发送中…';
 
             try {
                 const response = await fetch('/api/send-code', {
@@ -497,13 +499,12 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('regError').textContent = '';
-                    document.getElementById('regSuccess').textContent = '验证码已发送到邮箱';
-                    // 倒计时60秒
+                    setMsg('regError', '', 'error');
+                    setMsg('regSuccess', '✓ 验证码已发送到邮箱', 'success');
                     let countdown = 60;
                     const timer = setInterval(() => {
                         countdown--;
-                        btn.textContent = `${countdown}s`;
+                        btn.textContent = `${countdown}s 后重发`;
                         if (countdown <= 0) {
                             clearInterval(timer);
                             btn.textContent = '发送验证码';
@@ -511,26 +512,30 @@
                         }
                     }, 1000);
                 } else {
-                    document.getElementById('regError').textContent = data.message;
+                    setMsg('regError', data.message, 'error');
                     btn.textContent = '发送验证码';
                     btn.disabled = false;
                 }
             } catch (error) {
-                document.getElementById('regError').textContent = '发送失败，请稍后重试';
+                setMsg('regError', '发送失败，请稍后重试', 'error');
                 btn.textContent = '发送验证码';
                 btn.disabled = false;
             }
         }
 
-        // 登录
+        /* ============ 登录 ============ */
         async function handleLogin() {
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
 
             if (!email || !password) {
-                document.getElementById('loginError').textContent = '请填写邮箱和密码';
+                setMsg('loginError', '请填写邮箱和密码', 'error');
+                if (!email) shakeField('loginEmail'); else shakeField('loginPassword');
                 return;
             }
+
+            setLoading('loginBtn', true, '登录中…');
+            setMsg('loginError', '', 'error');
 
             try {
                 const response = await fetch('/api/login', {
@@ -541,33 +546,43 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // 登录成功，跳转到用户详情页面
+                    setLoading('loginBtn', false, '登 录');
                     window.location.href = '/user/' + encodeURIComponent(email);
                 } else {
-                    document.getElementById('loginError').textContent = data.message;
+                    setLoading('loginBtn', false, '登 录');
+                    setMsg('loginError', data.message, 'error');
+                    shakeField('loginPassword');
                 }
             } catch (error) {
-                document.getElementById('loginError').textContent = '登录失败，请稍后重试';
+                setLoading('loginBtn', false, '登 录');
+                setMsg('loginError', '登录失败，请稍后重试', 'error');
             }
         }
 
-        // 注册
+        /* ============ 注册 ============ */
         async function handleRegister() {
             const email = document.getElementById('regEmail').value.trim();
             const code = document.getElementById('regCode').value.trim();
             const password = document.getElementById('regPassword').value.trim();
 
             if (!email || !code || !password) {
-                document.getElementById('regError').textContent = '请填写完整信息';
-                document.getElementById('regSuccess').textContent = '';
+                setMsg('regError', '请填写完整信息', 'error');
+                setMsg('regSuccess', '', 'success');
+                if (!email) shakeField('regEmail');
+                else if (!code) shakeField('regCode');
+                else shakeField('regPassword');
+                return;
+            }
+            if (password.length < 6) {
+                setMsg('regError', '密码至少需要 6 位', 'error');
+                setMsg('regSuccess', '', 'success');
+                shakeField('regPassword');
                 return;
             }
 
-            if (password.length < 6) {
-                document.getElementById('regError').textContent = '密码至少需要6位';
-                document.getElementById('regSuccess').textContent = '';
-                return;
-            }
+            setLoading('regBtn', true, '注册中…');
+            setMsg('regError', '', 'error');
+            setMsg('regSuccess', '', 'success');
 
             try {
                 const response = await fetch('/api/register', {
@@ -578,29 +593,79 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('regError').textContent = '';
-                    document.getElementById('regSuccess').textContent = '注册成功！正在跳转...';
-                    // 注册成功后自动登录并跳转
+                    setLoading('regBtn', false, '创建账号');
+                    setMsg('regSuccess', '✓ 注册成功！正在进入你的工作台…', 'success');
                     setTimeout(() => {
                         window.location.href = '/user/' + encodeURIComponent(email);
-                    }, 1500);
+                    }, 1400);
                 } else {
-                    document.getElementById('regError').textContent = data.message;
-                    document.getElementById('regSuccess').textContent = '';
+                    setLoading('regBtn', false, '创建账号');
+                    setMsg('regError', data.message, 'error');
                 }
             } catch (error) {
-                document.getElementById('regError').textContent = '注册失败，请稍后重试';
-                document.getElementById('regSuccess').textContent = '';
+                setLoading('regBtn', false, '创建账号');
+                setMsg('regError', '注册失败，请稍后重试', 'error');
             }
         }
 
-        // 回车提交
-        document.getElementById('loginPassword').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleLogin();
-        });
-        document.getElementById('regPassword').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleRegister();
-        });
+        /* ============ 回车提交 ============ */
+        document.getElementById('loginPassword').addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+        document.getElementById('loginEmail').addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+        document.getElementById('regPassword').addEventListener('keypress', e => { if (e.key === 'Enter') handleRegister(); });
+        document.getElementById('regCode').addEventListener('keypress', e => { if (e.key === 'Enter') handleRegister(); });
+
+        /* ============ 左侧粒子 ============ */
+        (function initParticles() {
+            const wrap = document.getElementById('particles');
+            if (!wrap) return;
+            for (let i = 0; i < 16; i++) {
+                const p = document.createElement('i');
+                p.style.left = Math.random() * 100 + '%';
+                p.style.animationDuration = (8 + Math.random() * 10) + 's';
+                p.style.animationDelay = (-Math.random() * 12) + 's';
+                p.style.width = p.style.height = (3 + Math.random() * 4) + 'px';
+                p.style.opacity = 0.25 + Math.random() * 0.4;
+                wrap.appendChild(p);
+            }
+        })();
+
+        /* ============ 左侧实时识别模拟 ============ */
+        const SIM = [
+            { icon: 'fa-code',           c: '#2f9e44', t: '开发',     d: '编辑核心模块，调试接口逻辑' },
+            { icon: 'fa-comments',       c: '#1c7ed6', t: '沟通',     d: '团队群聊，同步项目进度' },
+            { icon: 'fa-file-alt',       c: '#f08c00', t: '文档',     d: '撰写需求文档，整理要点' },
+            { icon: 'fa-chart-line',     c: '#e64980', t: '数据分析', d: '查看运营看板，分析趋势' },
+            { icon: 'fa-pen-ruler',      c: '#9c36b5', t: '设计',     d: '调整界面原型与交互' },
+            { icon: 'fa-users',          c: '#0ca678', t: '会议',     d: '产品评审，记录待办' },
+            { icon: 'fa-graduation-cap', c: '#5c940d', t: '学习',     d: '阅读技术文章充电' }
+        ];
+        (function initSim() {
+            const feed = document.getElementById('simFeed');
+            if (!feed) return;
+            for (let i = 0; i < 2; i++) pushSim(feed, false);
+            setInterval(() => pushSim(feed, true), 2400);
+
+            const scan = document.getElementById('scanLine');
+            let dots = 0;
+            setInterval(() => { dots = (dots + 1) % 4; scan.textContent = 'SCANNING' + '.'.repeat(dots); }, 420);
+        })();
+
+        function pushSim(feed, animate) {
+            const a = SIM[Math.floor(Math.random() * SIM.length)];
+            const mins = Math.floor(Math.random() * 40 + 5);
+            const now = new Date();
+            const time = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+            const card = document.createElement('div');
+            card.className = 'sim-card';
+            card.style.setProperty('--sc', a.c);
+            if (!animate) card.style.animation = 'none';
+            card.innerHTML =
+                '<div class="sc-icon" style="background:' + a.c + '"><i class="fas ' + a.icon + '"></i></div>' +
+                '<div class="sc-body"><div class="sc-title">' + a.t + '</div><div class="sc-desc">' + a.d + '</div></div>' +
+                '<div class="sc-time">' + time + ' · ' + mins + 'min</div>';
+            feed.insertBefore(card, feed.firstChild);
+            while (feed.children.length > 2) feed.removeChild(feed.lastChild);
+        }
     </script>
 </body>
 </html>
