@@ -198,6 +198,8 @@
         .form-group.full { grid-column: span 2; }
         .form-group label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--txt-soft); margin-bottom: 8px; }
         .form-group input, .form-group select { width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1.5px solid var(--line); border-radius: 12px; color: var(--txt); font-size: 0.9rem; transition: all 0.3s var(--ease); }
+        .form-group select { color-scheme: dark; cursor: pointer; }
+        .form-group select option { background: var(--bg2); color: var(--txt); }
         .form-group input::placeholder { color: var(--txt-faint); }
         .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--lime); background: rgba(169,227,75,0.05); box-shadow: 0 0 0 4px rgba(169,227,75,0.08); }
         .form-group input[type="file"] { padding: 10px 12px; cursor: pointer; }
@@ -224,6 +226,8 @@
         .current-version { background: rgba(169,227,75,0.12); color: var(--lime); border: 1px solid rgba(169,227,75,0.3); padding: 3px 11px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
         .current-version i { font-size: 0.6rem; }
         .version-tag { background: rgba(77,171,247,0.12); color: var(--blue); border: 1px solid rgba(77,171,247,0.3); padding: 2px 10px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; font-family: var(--font-mono); }
+        .force-tag { background: rgba(255,107,107,0.12); color: var(--red); border: 1px solid rgba(255,107,107,0.35); padding: 2px 10px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }
+        .force-tag i { font-size: 0.6rem; }
         .empty-hint { text-align: center; padding: 40px 20px; color: var(--txt-faint); font-size: 0.88rem; }
         .empty-hint i { display: block; font-size: 2.2rem; margin-bottom: 12px; opacity: 0.4; }
 
@@ -400,6 +404,13 @@
                         <div id="uploadMessage" class="message"></div>
                         <div class="form-group"><label>文件名</label><input type="text" id="packageName" placeholder="例如：绿豆蛙日报助手"></div>
                         <div class="form-group"><label>版本号（只能是数字）</label><input type="text" id="packageVersion" placeholder="例如：1.0.0" pattern="[0-9.]+"></div>
+                        <div class="form-group">
+                            <label>是否为强制更新</label>
+                            <select id="packageForce">
+                                <option value="0">否 - 用户可关闭更新弹窗</option>
+                                <option value="1">是 - 强制更新，隐藏关闭按钮</option>
+                            </select>
+                        </div>
                         <div class="form-group"><label>版本说明</label><input type="text" id="packageNote" placeholder="例如：修复了 xxx 问题"></div>
                         <div class="form-group"><label>选择安装包文件</label><input type="file" id="packageFile" accept=".exe,.zip,.rar,.7z"></div>
                         <button class="btn btn-success" onclick="uploadPackage()" style="padding:12px 26px;font-size:0.88rem;"><i class="fas fa-upload"></i> 上传安装包</button>
@@ -633,6 +644,7 @@
                             <i class="fas fa-cube" style="color:var(--lime)"></i>
                             ${pkg.display_name || pkg.filename}
                             ${pkg.version ? `<span class="version-tag">v${pkg.version}</span>` : ''}
+                            ${pkg.force_update ? '<span class="force-tag"><i class="fas fa-bolt"></i>强制更新</span>' : ''}
                             ${pkg.filename === currentVersion ? '<span class="current-version"><i class="fas fa-circle"></i>当前版本</span>' : ''}
                         </div>
                         <div class="package-meta">
@@ -654,6 +666,7 @@
             const name = document.getElementById('packageName').value.trim();
             const version = document.getElementById('packageVersion').value.trim();
             const note = document.getElementById('packageNote').value.trim();
+            const force = document.getElementById('packageForce').value;
             const msg = document.getElementById('uploadMessage');
 
             function fail(text) { msg.textContent = text; msg.className = 'message error'; setTimeout(() => msg.className = 'message', 3000); }
@@ -667,6 +680,7 @@
             formData.append('name', name);
             formData.append('version', version);
             formData.append('note', note);
+            formData.append('force_update', force);
 
             try {
                 const res = await fetch('/api/admin/packages/upload', {method:'POST', body: formData});
@@ -679,6 +693,7 @@
                     document.getElementById('packageName').value = '';
                     document.getElementById('packageVersion').value = '';
                     document.getElementById('packageNote').value = '';
+                    document.getElementById('packageForce').value = '0';
                     loadPackages();
                 }
             } catch (e) { fail('上传失败'); }

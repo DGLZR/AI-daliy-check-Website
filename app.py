@@ -1379,6 +1379,7 @@ def admin_upload_package():
     name = request.form.get('name', '').strip()
     version = request.form.get('version', '').strip()
     note = request.form.get('note', '').strip()
+    force_update = request.form.get('force_update', '0').strip() == '1'
     
     if not name:
         return jsonify({'success': False, 'message': '请输入文件名'})
@@ -1407,7 +1408,8 @@ def admin_upload_package():
         'size': os.path.getsize(filepath),
         'upload_time': get_china_time().isoformat(),
         'path': filepath,
-        'note': note
+        'note': note,
+        'force_update': force_update
     })
     
     if len(files_info['files']) == 1:
@@ -1471,6 +1473,7 @@ def check_update():
     latest_version = None
     update_log = ''
     download_url = ''
+    force_update = False
     
     if files_info.get('current_version'):
         # 找到当前版本的文件信息
@@ -1480,6 +1483,7 @@ def check_update():
                 latest_version = f'v{ver}' if not ver.startswith('v') else ver
                 update_log = f.get('note', '')
                 download_url = f"/download/{f['filename']}"
+                force_update = bool(f.get('force_update', False))
                 break
     
     # 如果没有当前版本，返回无更新
@@ -1490,7 +1494,8 @@ def check_update():
             'current_version': current_version,
             'latest_version': current_version,
             'update_log': '',
-            'download_url': ''
+            'download_url': '',
+            'force_update': False
         })
     
     # 比较版本号
@@ -1508,7 +1513,8 @@ def check_update():
         'current_version': current_version,
         'latest_version': latest_version,
         'update_log': update_log,
-        'download_url': download_url if has_update else ''
+        'download_url': download_url if has_update else '',
+        'force_update': force_update if has_update else False
     })
 
 
