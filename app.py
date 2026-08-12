@@ -10,6 +10,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from werkzeug.utils import secure_filename
 from superadmin import superadmin_bp
+import platform
+import socket
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    PSUTIL_AVAILABLE = False
 
 # 东八区时区
 CHINA_TZ = timezone(timedelta(hours=8))
@@ -1515,6 +1523,156 @@ def check_update():
         'update_log': update_log,
         'download_url': download_url if has_update else '',
         'force_update': force_update if has_update else False
+    })
+
+
+# ============ 服务器监测接口 ============
+# 缓存上一次的网络 I/O，用于计算速率
+_last_net_io = {'sent': 0, 'recv': 0, 'time': 0}
+
+def _format_bytes(num):
+    """字节转可读单位"""
+    try:
+        num = float(num)
+    except (TypeError, ValueError):
+        return '0 B'
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+        if num < 1024.0:
+            return f"{num:.1f} {unit}"
+        num /= 1024.0
+    return f"{num:.1f} EB"
+
+def _format_uptime(seconds):
+    """秒转可读时长"""
+    try:
+        seconds = int(seconds)
+    except (TypeError, ValueError):
+        return '未知'
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    parts = []
+    if days: parts.append(f"{days}天")
+    if hours: parts.append(f"{hours}小时")
+    parts.append(f"{minutes}分钟")
+    return ' '.join(parts)
+
+@app.route('/api/admin/server-stats', methods=['GET'])
+def admin_server_stats():
+    """服务器监测 - 返回硬件信息与实时指标"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+
+    if not PSUTIL_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'message': '服务器未安装 psutil，无法获取监测数据'
+        }), 500
+
+    import time
+    now = time.time()
+
+    # ---- CPU ----
+    cpu_percent = psutil.cpu_percent(interval=None)
+    cpu_count_logical = psutil.cpu_count(logical=True)
+    cpu_count_physical = psutil.cpu_count(logical=False)
+    try:
+        cpu_freq = psutil.cpu_freq()
+        cpu_freq_mhz = round(cpu_freq.current, 0) if cpu_freq else 0
+    except Exception:
+        cpu_freq_mhz = 0
+    try:
+        per_cpu = psutil.cpu_percent(interval=None, percpu=True)
+    except Exception:
+        per_cpu = []
+    try:
+        load_avg = list(psutil.getloadavg())
+    except Exception:
+        load_avg = []
+
+    # ---- 内存 ----
+    mem = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+
+    # ---- 磁盘 ----
+    try:
+        disk = psutil.disk_usage('/')
+    except Exception:
+        disk = psutil.disk_usage('C:\\') if os.name == 'nt' else None
+
+    # ---- 网络 ----
+    net = psutil.net_io_counters()
+    net_rate = {'sent': 0.0, 'recv': 0.0}
+    if _last_net_io['time'] > 0:
+        dt = now - _last_net_io['time']
+        if dt > 0:
+            net_rate['sent'] = max(0, (net.bytes_sent - _last_net_io['sent']) / dt)
+            net_rate['recv'] = max(0, (net.bytes_recv - _last_net_io['recv']) / dt)
+    _last_net_io['sent'] = net.bytes_sent
+    _last_net_io['recv'] = net.bytes_recv
+    _last_net_io['time'] = now
+
+    # ---- 系统 / 开机时间 ----
+    boot_time = psutil.boot_time()
+    uptime_seconds = now - boot_time
+    try:
+        cpu_model = platform.processor() or '未知'
+    except Exception:
+        cpu_model = '未知'
+
+    # ---- 进程数 / 线程数 ----
+    try:
+        process_count = len(psutil.pids())
+    except Exception:
+        process_count = 0
+    try:
+        thread_count = psutil.Process().num_threads()
+    except Exception:
+        thread_count = 0
+
+    return jsonify({
+        'success': True,
+        'timestamp': now,
+        'static': {
+            'hostname': socket.gethostname(),
+            'os': f"{platform.system()} {platform.release()}",
+            'os_detail': platform.platform(),
+            'arch': platform.machine(),
+            'python_version': platform.python_version(),
+            'cpu_model': cpu_model,
+            'cpu_logical': cpu_count_logical,
+            'cpu_physical': cpu_count_physical,
+            'cpu_freq_mhz': cpu_freq_mhz,
+            'total_memory': _format_bytes(mem.total),
+            'total_memory_raw': mem.total,
+            'total_swap': _format_bytes(swap.total),
+            'disk_total': _format_bytes(disk.total) if disk else '未知',
+            'disk_device': '/' if os.name != 'nt' else 'C:\\',
+            'boot_time': datetime.fromtimestamp(boot_time).strftime('%Y-%m-%d %H:%M:%S'),
+            'uptime': _format_uptime(uptime_seconds)
+        },
+        'dynamic': {
+            'cpu_percent': cpu_percent,
+            'per_cpu': per_cpu,
+            'load_avg': load_avg,
+            'memory_percent': mem.percent,
+            'memory_used': _format_bytes(mem.used),
+            'memory_available': _format_bytes(mem.available),
+            'swap_percent': swap.percent,
+            'swap_used': _format_bytes(swap.used),
+            'disk_percent': disk.percent if disk else 0,
+            'disk_used': _format_bytes(disk.used) if disk else '未知',
+            'disk_free': _format_bytes(disk.free) if disk else '未知',
+            'net_sent_total': _format_bytes(net.bytes_sent),
+            'net_recv_total': _format_bytes(net.bytes_recv),
+            'net_sent_rate': net_rate['sent'],
+            'net_recv_rate': net_rate['recv'],
+            'net_sent_rate_text': _format_bytes(net_rate['sent']) + '/s',
+            'net_recv_rate_text': _format_bytes(net_rate['recv']) + '/s',
+            'process_count': process_count,
+            'thread_count': thread_count,
+            'uptime_seconds': int(uptime_seconds)
+        }
     })
 
 

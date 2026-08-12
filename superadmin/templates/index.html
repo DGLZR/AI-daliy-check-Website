@@ -92,6 +92,7 @@
         .login-btn .spinner { display: none; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 9px; vertical-align: -4px; }
         .login-btn.loading .spinner { display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 0.8s linear infinite; display: inline-block; }
 
         .login-error { color: var(--red); font-size: 0.8rem; text-align: center; min-height: 20px; margin-top: 14px; }
         .login-foot { text-align: center; margin-top: 26px; font-family: var(--font-mono); font-size: 0.66rem; color: var(--txt-faint); letter-spacing: 0.12em; }
@@ -233,10 +234,70 @@
 
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 
+        /* ============ 服务器监测 ============ */
+        .mon-live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--lime); position: relative; box-shadow: 0 0 10px var(--lime); }
+        .mon-live-dot::after { content:''; position:absolute; inset:-5px; border-radius:50%; border:2px solid var(--lime); animation:pulse 1.6s ease-out infinite; }
+        .mon-live-tag { font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; color: var(--lime); background: rgba(169,227,75,0.1); border: 1px solid rgba(169,227,75,0.35); padding: 3px 10px; border-radius: 999px; animation: liveBlink 2s ease-in-out infinite; }
+        @keyframes liveBlink { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+        .mon-gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .mon-gauge-card { display: flex; flex-direction: column; align-items: center; padding: 28px 20px 22px; transition: all 0.3s var(--ease); }
+        .mon-gauge-card:hover { transform: translateY(-5px); border-color: var(--line-strong); box-shadow: 0 18px 44px rgba(0,0,0,0.4); }
+        .gauge-wrap { position: relative; width: 150px; height: 150px; }
+        .gauge-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .gauge-track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 10; }
+        .gauge-fill { fill: none; stroke: var(--lime); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 326.7; stroke-dashoffset: 326.7; transition: stroke-dashoffset 0.9s var(--ease-out), stroke 0.5s var(--ease); filter: drop-shadow(0 0 6px rgba(169,227,75,0.4)); }
+        .gauge-fill.warn { stroke: var(--orange); filter: drop-shadow(0 0 6px rgba(255,169,77,0.4)); }
+        .gauge-fill.danger { stroke: var(--red); filter: drop-shadow(0 0 6px rgba(255,107,107,0.4)); }
+        .gauge-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .gauge-center b { font-family: var(--font-mono); font-size: 2rem; font-weight: 700; color: var(--txt); line-height: 1; }
+        .gauge-center span { font-size: 0.85rem; color: var(--txt-soft); }
+        .gauge-center small { font-size: 0.62rem; color: var(--txt-faint); letter-spacing: 0.1em; margin-top: 5px; text-transform: uppercase; }
+        .gauge-label { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.9rem; color: var(--txt); margin-top: 18px; }
+        .gauge-label i { color: var(--lime); }
+        .gauge-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--txt-faint); margin-top: 6px; }
+
+        .net-speeds { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+        .net-speed { display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 14px; padding: 16px; transition: all 0.28s var(--ease); }
+        .net-speed:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+        .net-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0; }
+        .net-speed.up .net-icon { background: rgba(169,227,75,0.12); color: var(--lime); }
+        .net-speed.down .net-icon { background: rgba(77,171,247,0.12); color: var(--blue); }
+        .net-speed b { font-family: var(--font-mono); font-size: 1.15rem; font-weight: 700; color: var(--txt); display: block; line-height: 1.2; }
+        .net-speed.up b { color: var(--lime); }
+        .net-speed.down b { color: var(--blue); }
+        .net-speed span { font-size: 0.7rem; color: var(--txt-faint); display: block; }
+        .net-speed small { font-size: 0.66rem; color: var(--txt-faint); display: block; margin-top: 3px; }
+        .net-speed small em { font-style: normal; font-family: var(--font-mono); color: var(--txt-soft); }
+
+        .net-extra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .net-extra-item { background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; text-align: center; transition: all 0.25s var(--ease); }
+        .net-extra-item:hover { border-color: var(--line-strong); }
+        .net-extra-item i { color: var(--lime); font-size: 0.85rem; display: block; margin-bottom: 6px; }
+        .net-extra-item span { font-size: 0.66rem; color: var(--txt-faint); display: block; }
+        .net-extra-item b { font-family: var(--font-mono); font-size: 1rem; font-weight: 700; color: var(--txt); display: block; margin-top: 2px; }
+
+        .percpu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 12px; }
+        .percpu-item { background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px; text-align: center; transition: all 0.25s var(--ease); }
+        .percpu-item:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+        .percpu-item .pc-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--txt-faint); margin-bottom: 7px; }
+        .percpu-item .pc-bar { height: 6px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; margin-bottom: 7px; }
+        .percpu-item .pc-fill { height: 100%; width: 0; border-radius: 3px; background: var(--lime); transition: width 0.7s var(--ease-out), background 0.4s var(--ease); }
+        .percpu-item .pc-val { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; color: var(--txt); }
+
+        .hw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+        .hw-item { display: flex; align-items: center; gap: 13px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 13px; padding: 14px 16px; transition: all 0.25s var(--ease); }
+        .hw-item:hover { border-color: var(--line-strong); transform: translateX(4px); background: rgba(169,227,75,0.04); }
+        .hw-item .hw-icon { width: 40px; height: 40px; border-radius: 11px; background: rgba(169,227,75,0.1); color: var(--lime); display: flex; align-items: center; justify-content: center; font-size: 0.92rem; flex-shrink: 0; }
+        .hw-item .hw-body { min-width: 0; }
+        .hw-item .hw-label { font-size: 0.66rem; color: var(--txt-faint); letter-spacing: 0.04em; }
+        .hw-item .hw-value { font-size: 0.84rem; font-weight: 700; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
         @media (max-width: 1024px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
             .two-col, .form-grid { grid-template-columns: 1fr; }
             .form-group.full { grid-column: span 1; }
+            .mon-gauges { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 640px) {
             .stats-row { grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -244,6 +305,8 @@
             .live-clock, .admin-badge span.txt { display: none; }
             .search-box { width: 100%; }
             .tabs { width: 100%; overflow-x: auto; }
+            .mon-gauges { grid-template-columns: 1fr; }
+            .net-speeds { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -345,6 +408,7 @@
                 <button class="tab active" onclick="switchTab('users', this)"><i class="fas fa-users"></i> 用户管理</button>
                 <button class="tab" onclick="switchTab('smtp', this)"><i class="fas fa-envelope"></i> SMTP 配置</button>
                 <button class="tab" onclick="switchTab('packages', this)"><i class="fas fa-box-open"></i> 管理安装包</button>
+                <button class="tab" onclick="switchTab('monitor', this)"><i class="fas fa-heartbeat"></i> 服务器监测</button>
             </div>
 
             <!-- 用户管理 -->
@@ -419,6 +483,117 @@
                         <div class="card-title" style="margin-bottom:22px;"><span class="ct-icon"><i class="fas fa-boxes"></i></span>已上传的安装包</div>
                         <div id="packageList"></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 服务器监测 -->
+            <div id="monitorPanel" class="panel">
+                <!-- 状态栏 -->
+                <div class="mon-statusbar card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <span class="mon-live-dot"></span>
+                        <span style="font-family:var(--font-display);font-weight:900;font-size:1.05rem;">服务器实时监测</span>
+                        <span class="mon-live-tag">LIVE</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:14px;">
+                        <span style="font-family:var(--font-mono);font-size:0.74rem;color:var(--txt-faint);">上次刷新 <span id="monLastUpdate">--:--:--</span></span>
+                        <button class="btn btn-success" onclick="loadServerStats()" style="padding:8px 18px;"><i class="fas fa-sync-alt" id="monRefreshIcon"></i> 刷新</button>
+                    </div>
+                </div>
+
+                <!-- 三大占用率环形仪表 -->
+                <div class="mon-gauges">
+                    <div class="card mon-gauge-card">
+                        <div class="gauge-wrap">
+                            <svg viewBox="0 0 120 120" class="gauge-svg">
+                                <circle class="gauge-track" cx="60" cy="60" r="52"/>
+                                <circle class="gauge-fill" id="cpuGauge" cx="60" cy="60" r="52"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <b id="cpuValue">0</b><span>%</span>
+                                <small>CPU</small>
+                            </div>
+                        </div>
+                        <div class="gauge-label"><i class="fas fa-microchip"></i> CPU 占用率</div>
+                        <div class="gauge-sub" id="cpuSub">--</div>
+                    </div>
+                    <div class="card mon-gauge-card">
+                        <div class="gauge-wrap">
+                            <svg viewBox="0 0 120 120" class="gauge-svg">
+                                <circle class="gauge-track" cx="60" cy="60" r="52"/>
+                                <circle class="gauge-fill" id="memGauge" cx="60" cy="60" r="52"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <b id="memValue">0</b><span>%</span>
+                                <small>内存</small>
+                            </div>
+                        </div>
+                        <div class="gauge-label"><i class="fas fa-memory"></i> 内存占用率</div>
+                        <div class="gauge-sub" id="memSub">--</div>
+                    </div>
+                    <div class="card mon-gauge-card">
+                        <div class="gauge-wrap">
+                            <svg viewBox="0 0 120 120" class="gauge-svg">
+                                <circle class="gauge-track" cx="60" cy="60" r="52"/>
+                                <circle class="gauge-fill" id="diskGauge" cx="60" cy="60" r="52"/>
+                            </svg>
+                            <div class="gauge-center">
+                                <b id="diskValue">0</b><span>%</span>
+                                <small>磁盘</small>
+                            </div>
+                        </div>
+                        <div class="gauge-label"><i class="fas fa-hdd"></i> 磁盘占用率</div>
+                        <div class="gauge-sub" id="diskSub">--</div>
+                    </div>
+                </div>
+
+                <!-- CPU 历史曲线 + 网络流量 -->
+                <div class="two-col" style="margin-top:20px;">
+                    <div class="card">
+                        <div class="card-head" style="margin-bottom:14px;">
+                            <div class="card-title"><span class="ct-icon"><i class="fas fa-wave-square"></i></span>CPU 使用率趋势</div>
+                            <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--txt-faint);">最近 60 次采样</span>
+                        </div>
+                        <canvas id="cpuHistoryCanvas" height="150" style="width:100%;"></canvas>
+                    </div>
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:20px;"><span class="ct-icon"><i class="fas fa-network-wired"></i></span>网络流量</div>
+                        <div class="net-speeds">
+                            <div class="net-speed up">
+                                <div class="net-icon"><i class="fas fa-arrow-up"></i></div>
+                                <div>
+                                    <b id="netUpSpeed">0 B/s</b>
+                                    <span>上传速率</span>
+                                    <small>累计 <em id="netUpTotal">--</em></small>
+                                </div>
+                            </div>
+                            <div class="net-speed down">
+                                <div class="net-icon"><i class="fas fa-arrow-down"></i></div>
+                                <div>
+                                    <b id="netDownSpeed">0 B/s</b>
+                                    <span>下载速率</span>
+                                    <small>累计 <em id="netDownTotal">--</em></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="net-extra">
+                            <div class="net-extra-item"><i class="fas fa-tasks"></i><span>进程数</span><b id="procCount">--</b></div>
+                            <div class="net-extra-item"><i class="fas fa-layer-group"></i><span>线程数</span><b id="threadCount">--</b></div>
+                            <div class="net-extra-item"><i class="fas fa-gauge-high"></i><span>负载</span><b id="loadAvg">--</b></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 每核心 CPU -->
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-title" style="margin-bottom:20px;"><span class="ct-icon"><i class="fas fa-microchip"></i></span>每核心 CPU 占用</div>
+                    <div class="percpu-grid" id="perCpuGrid"></div>
+                </div>
+
+                <!-- 硬件信息 -->
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-title" style="margin-bottom:20px;"><span class="ct-icon"><i class="fas fa-server"></i></span>硬件与系统信息</div>
+                    <div class="hw-grid" id="hwGrid"></div>
                 </div>
             </div>
         </div>
@@ -533,6 +708,8 @@
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             if (btn) btn.classList.add('active');
             document.getElementById(tab + 'Panel').classList.add('active');
+            // 进入监测页启动自动刷新，离开则停止
+            if (tab === 'monitor') startMonitor(); else stopMonitor();
         }
 
         /* ============ 数字动画 ============ */
@@ -713,6 +890,224 @@
             if (data.success) loadPackages();
             alert(data.message);
         }
+
+        /* ============ 服务器监测 ============ */
+        let monTimer = null;
+        const cpuHistory = [];
+        const CPU_HISTORY_MAX = 60;
+        const GAUGE_C = 326.7; // 2*PI*52
+
+        function gaugeColor(pct) {
+            if (pct >= 85) return 'danger';
+            if (pct >= 60) return 'warn';
+            return '';
+        }
+
+        function setGauge(id, valueId, pct, subId, subText) {
+            const fill = document.getElementById(id);
+            const val = document.getElementById(valueId);
+            if (!fill || !val) return;
+            const p = Math.max(0, Math.min(100, pct));
+            fill.style.strokeDashoffset = GAUGE_C * (1 - p / 100);
+            fill.classList.remove('warn', 'danger');
+            const c = gaugeColor(p);
+            if (c) fill.classList.add(c);
+            animateNumber(val, p, 700, v => Math.round(v));
+            if (subId && subText !== undefined) {
+                const sub = document.getElementById(subId);
+                if (sub) sub.textContent = subText;
+            }
+        }
+
+        function animateNumber(el, target, duration, fmt) {
+            const startVal = parseFloat(el.dataset.cur || 0);
+            const startTime = performance.now();
+            function tick(now) {
+                const p = Math.min((now - startTime) / duration, 1);
+                const eased = 1 - Math.pow(1 - p, 3);
+                const cur = startVal + (target - startVal) * eased;
+                el.textContent = fmt(cur);
+                if (p < 1) requestAnimationFrame(tick);
+                else el.dataset.cur = target;
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function drawCpuHistory() {
+            const canvas = document.getElementById('cpuHistoryCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
+            const cssH = 150;
+            canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+            canvas.style.height = cssH + 'px';
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, cssW, cssH);
+
+            const pad = 6;
+            const w = cssW - pad * 2, h = cssH - pad * 2;
+
+            // 网格线
+            ctx.strokeStyle = 'rgba(169,227,75,0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 4; i++) {
+                const y = pad + (h / 4) * i;
+                ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad + w, y); ctx.stroke();
+            }
+
+            if (cpuHistory.length < 2) return;
+
+            const step = w / (CPU_HISTORY_MAX - 1);
+            const offset = CPU_HISTORY_MAX - cpuHistory.length;
+
+            // 渐变填充区域
+            const grad = ctx.createLinearGradient(0, pad, 0, pad + h);
+            grad.addColorStop(0, 'rgba(169,227,75,0.35)');
+            grad.addColorStop(1, 'rgba(169,227,75,0)');
+
+            ctx.beginPath();
+            cpuHistory.forEach((v, i) => {
+                const x = pad + (offset + i) * step;
+                const y = pad + h - (v / 100) * h;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            // 填充
+            const lastX = pad + (offset + cpuHistory.length - 1) * step;
+            const firstX = pad + offset * step;
+            ctx.save();
+            ctx.lineTo(lastX, pad + h); ctx.lineTo(firstX, pad + h); ctx.closePath();
+            ctx.fillStyle = grad; ctx.fill();
+            ctx.restore();
+
+            // 折线
+            ctx.beginPath();
+            cpuHistory.forEach((v, i) => {
+                const x = pad + (offset + i) * step;
+                const y = pad + h - (v / 100) * h;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = '#a9e34b';
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            // 末端亮点
+            const lastV = cpuHistory[cpuHistory.length - 1];
+            const lx = pad + (offset + cpuHistory.length - 1) * step;
+            const ly = pad + h - (lastV / 100) * h;
+            ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#a9e34b'; ctx.fill();
+            ctx.beginPath(); ctx.arc(lx, ly, 8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(169,227,75,0.25)'; ctx.fill();
+        }
+
+        function renderPerCpu(perCpu) {
+            const grid = document.getElementById('perCpuGrid');
+            if (!grid) return;
+            if (!perCpu || perCpu.length === 0) {
+                grid.innerHTML = '<div class="empty-hint" style="grid-column:1/-1;"><i class="fas fa-microchip"></i>暂无每核心数据</div>';
+                return;
+            }
+            grid.innerHTML = perCpu.map((v, i) => {
+                const c = v >= 85 ? 'var(--red)' : (v >= 60 ? 'var(--orange)' : 'var(--lime)');
+                return `<div class="percpu-item">
+                    <div class="pc-label">核心 ${i}</div>
+                    <div class="pc-bar"><div class="pc-fill" data-w="${Math.max(2, v)}" style="background:${c}"></div></div>
+                    <div class="pc-val">${Math.round(v)}%</div>
+                </div>`;
+            }).join('');
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                grid.querySelectorAll('.pc-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+            }));
+        }
+
+        function renderHwInfo(s) {
+            const grid = document.getElementById('hwGrid');
+            if (!grid) return;
+            const items = [
+                { icon: 'fa-computer', label: '主机名', value: s.hostname },
+                { icon: 'fa-desktop', label: '操作系统', value: s.os },
+                { icon: 'fa-microchip', label: 'CPU 型号', value: s.cpu_model },
+                { icon: 'fa-microchip', label: 'CPU 核心', value: `${s.cpu_physical} 物理核 / ${s.cpu_logical} 逻辑核` },
+                { icon: 'fa-gauge-high', label: 'CPU 频率', value: s.cpu_freq_mhz ? `${s.cpu_freq_mhz} MHz` : '--' },
+                { icon: 'fa-memory', label: '总内存', value: s.total_memory },
+                { icon: 'fa-hdd', label: '磁盘总量', value: s.disk_total },
+                { icon: 'fa-power-off', label: '开机时间', value: s.boot_time },
+                { icon: 'fa-clock', label: '已运行', value: s.uptime },
+                { icon: 'fa-code', label: 'Python 版本', value: s.python_version },
+                { icon: 'fa-layer-group', label: '系统架构', value: s.arch }
+            ];
+            grid.innerHTML = items.map(it => `
+                <div class="hw-item">
+                    <div class="hw-icon"><i class="fas ${it.icon}"></i></div>
+                    <div class="hw-body">
+                        <div class="hw-label">${it.label}</div>
+                        <div class="hw-value" title="${it.value}">${it.value}</div>
+                    </div>
+                </div>`).join('');
+        }
+
+        async function loadServerStats() {
+            const icon = document.getElementById('monRefreshIcon');
+            if (icon) icon.classList.add('spin');
+            try {
+                const res = await fetch('/api/admin/server-stats');
+                const data = await res.json();
+                if (!data.success) {
+                    if (data.message) console.log('监测数据:', data.message);
+                    return;
+                }
+                const d = data.dynamic, s = data.static;
+
+                // 环形仪表
+                setGauge('cpuGauge', 'cpuValue', d.cpu_percent, 'cpuSub', `${s.cpu_logical} 核 · ${s.cpu_freq_mhz} MHz`);
+                setGauge('memGauge', 'memValue', d.memory_percent, 'memSub', `${d.memory_used} / ${s.total_memory}`);
+                setGauge('diskGauge', 'diskValue', d.disk_percent, 'diskSub', `${d.disk_used} / ${s.disk_total}`);
+
+                // CPU 历史
+                cpuHistory.push(d.cpu_percent);
+                if (cpuHistory.length > CPU_HISTORY_MAX) cpuHistory.shift();
+                drawCpuHistory();
+
+                // 网络
+                document.getElementById('netUpSpeed').textContent = d.net_sent_rate_text;
+                document.getElementById('netDownSpeed').textContent = d.net_recv_rate_text;
+                document.getElementById('netUpTotal').textContent = d.net_sent_total;
+                document.getElementById('netDownTotal').textContent = d.net_recv_total;
+                document.getElementById('procCount').textContent = d.process_count;
+                document.getElementById('threadCount').textContent = d.thread_count;
+                document.getElementById('loadAvg').textContent = d.load_avg && d.load_avg.length ? d.load_avg.map(x => x.toFixed(2)).join(' ') : '--';
+
+                // 每核心 + 硬件信息
+                renderPerCpu(d.per_cpu);
+                renderHwInfo(s);
+
+                // 更新时间
+                const n = new Date();
+                document.getElementById('monLastUpdate').textContent =
+                    `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+            } catch (e) {
+                console.log('获取监测数据失败:', e);
+            } finally {
+                if (icon) setTimeout(() => icon.classList.remove('spin'), 400);
+            }
+        }
+
+        function startMonitor() {
+            loadServerStats();
+            if (monTimer) clearInterval(monTimer);
+            monTimer = setInterval(loadServerStats, 2000);
+        }
+        function stopMonitor() {
+            if (monTimer) { clearInterval(monTimer); monTimer = null; }
+        }
+        // 窗口缩放时重绘 CPU 曲线
+        window.addEventListener('resize', () => {
+            if (document.getElementById('monitorPanel') && document.getElementById('monitorPanel').classList.contains('active')) {
+                drawCpuHistory();
+            }
+        });
 
         /* ============ 登录状态检查 ============ */
         async function checkLoginStatus() {
