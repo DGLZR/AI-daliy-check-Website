@@ -46,6 +46,7 @@
             --m2: #1c7ed6;
             --m3: #e8590c;
             --m4: #9c36b5;
+            --modal-backdrop: rgba(18,43,28,0.55);
             --font-display: 'Noto Serif SC', serif;
             --font-body: 'Noto Sans SC', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
@@ -86,6 +87,7 @@
             --m2: #4dabf7;
             --m3: #ffa94d;
             --m4: #b197fc;
+            --modal-backdrop: rgba(0,0,0,0.62);
             --shadow-sm: 0 2px 10px rgba(0,0,0,0.35);
             --shadow-md: 0 12px 32px rgba(0,0,0,0.45);
             --shadow-lg: 0 24px 60px rgba(0,0,0,0.6);
@@ -120,6 +122,7 @@
             --m2: #74c0fc;
             --m3: #ffa94d;
             --m4: #e599f7;
+            --modal-backdrop: rgba(8,4,24,0.66);
             --shadow-sm: 0 2px 10px rgba(0,0,0,0.4);
             --shadow-md: 0 12px 32px rgba(0,0,0,0.5);
             --shadow-lg: 0 24px 60px rgba(0,0,0,0.65);
@@ -154,6 +157,7 @@
             --m2: #4dabf7;
             --m3: #ffa94d;
             --m4: #b197fc;
+            --modal-backdrop: rgba(2,10,22,0.66);
             --shadow-sm: 0 2px 10px rgba(0,0,0,0.4);
             --shadow-md: 0 12px 32px rgba(0,0,0,0.5);
             --shadow-lg: 0 24px 60px rgba(0,0,0,0.65);
@@ -188,6 +192,7 @@
             --m2: #1c7ed6;
             --m3: #e8590c;
             --m4: #9c36b5;
+            --modal-backdrop: rgba(58,36,16,0.55);
             --shadow-sm: 0 2px 10px rgba(120,80,30,0.08);
             --shadow-md: 0 12px 32px rgba(120,80,30,0.13);
             --shadow-lg: 0 24px 60px rgba(120,80,30,0.2);
@@ -399,7 +404,7 @@
         .report-type-tag.月报 { background: rgba(240,140,0,0.13); color: #e8590c; }
 
         /* ============ 模态框 ============ */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(18,43,28,0.55); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
+        .modal { display: none; position: fixed; inset: 0; background: var(--modal-backdrop); backdrop-filter: blur(5px); z-index: 1000; justify-content: center; align-items: center; }
         .modal.active { display: flex; animation: modalFade 0.3s var(--ease); }
         @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
         .modal-content { background: var(--paper); width: 92%; max-width: 900px; max-height: 86vh; border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); animation: modalUp 0.35s var(--ease-out); }
@@ -411,10 +416,19 @@
         .modal-body { padding: 26px; overflow-y: auto; flex: 1; }
         .report-content { line-height: 1.85; color: var(--ink); font-size: 0.92rem; }
         .report-content h1 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 18px; color: var(--green-deep); }
-        .report-content h2 { font-size: 1.15rem; margin: 20px 0 10px; }
+        .report-content h2 { font-size: 1.15rem; margin: 20px 0 10px; color: var(--ink); }
         .report-content h3 { font-size: 1rem; margin: 15px 0 8px; color: var(--ink-soft); }
         .report-content p { margin-bottom: 12px; }
         .report-content ul, .report-content ol { margin-left: 22px; margin-bottom: 12px; }
+        .report-content strong { color: var(--green-deep); font-weight: 700; }
+        .report-content hr { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
+        .report-content code { background: var(--surface-2); color: var(--green-deep); padding: 2px 7px; border-radius: 5px; font-size: 0.85em; font-family: var(--font-mono); }
+        .report-content pre { background: var(--surface); padding: 16px; border-radius: 10px; overflow-x: auto; margin-bottom: 14px; border: 1px solid var(--line); }
+        .report-content pre code { background: none; padding: 0; }
+        .report-content table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.88rem; }
+        .report-content th, .report-content td { border: 1px solid var(--line); padding: 9px 13px; text-align: left; }
+        .report-content th { background: var(--surface-2); font-weight: 700; }
+        .report-content blockquote { border-left: 3px solid var(--green); padding-left: 14px; margin: 14px 0; color: var(--ink-soft); }
 
         /* 修改密码表单 */
         .form-group { margin-bottom: 18px; }

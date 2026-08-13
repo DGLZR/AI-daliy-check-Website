@@ -1182,6 +1182,26 @@ def markdown_to_html(md_content):
     
     html = md_content
     
+    # 表格转换（在标题/列表之前处理）
+    def convert_table(m):
+        block = m.group(0)
+        lines = [l.strip() for l in block.strip().split('\n') if l.strip()]
+        if len(lines) < 2:
+            return block
+        def parse_row(line):
+            line = line.strip().strip('|')
+            return [c.strip() for c in line.split('|')]
+        header = parse_row(lines[0])
+        # 跳过分隔行（|---|---|）
+        body_rows = [parse_row(l) for l in lines[1:] if not re.match(r'^[\s\|\-:]+$', l)]
+        out = '<table><thead><tr>' + ''.join(f'<th>{h}</th>' for h in header) + '</tr></thead><tbody>'
+        for row in body_rows:
+            out += '<tr>' + ''.join(f'<td>{c}</td>' for c in row) + '</tr>'
+        out += '</tbody></table>'
+        return out
+    
+    html = re.sub(r'(\|[^\n]+\|\n\|[\s\|\-:]+\|\n(\|[^\n]+\|\n?)+)', convert_table, html)
+    
     # 标题
     html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
     html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
