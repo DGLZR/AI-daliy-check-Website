@@ -234,6 +234,27 @@
 
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 
+        /* ============ GitHub 自动更新 ============ */
+        .toggle-row { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 14px; cursor: pointer; transition: all 0.25s var(--ease); }
+        .toggle-row:hover { border-color: var(--line-strong); background: rgba(169,227,75,0.04); }
+        .toggle-switch { position: relative; flex-shrink: 0; width: 52px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-track { position: absolute; inset: 0; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid var(--line); transition: all 0.3s var(--ease); cursor: pointer; }
+        .toggle-track::before { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--txt-faint); transition: all 0.3s var(--ease); }
+        .toggle-switch input:checked + .toggle-track { background: linear-gradient(135deg, var(--green), var(--green-deep)); border-color: var(--line-strong); }
+        .toggle-switch input:checked + .toggle-track::before { transform: translateX(24px); background: var(--lime); box-shadow: 0 0 10px rgba(169,227,75,0.7); }
+        .toggle-text b { display: block; font-size: 0.92rem; color: var(--txt); margin-bottom: 3px; }
+        .toggle-text small { font-size: 0.76rem; color: var(--txt-faint); line-height: 1.55; }
+        .auto-update-actions { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+        .auto-update-status { display: flex; align-items: center; gap: 9px; margin-top: 16px; padding: 11px 16px; border-radius: 11px; font-size: 0.82rem; color: var(--txt-soft); background: rgba(255,255,255,0.03); border: 1px solid var(--line); }
+        .auto-update-status i { font-size: 0.6rem; color: var(--txt-faint); }
+        .auto-update-status.ok { color: var(--lime); border-color: rgba(169,227,75,0.3); background: rgba(169,227,75,0.08); }
+        .auto-update-status.ok i { color: var(--lime); box-shadow: 0 0 8px var(--lime); border-radius: 50%; }
+        .auto-update-status.err { color: var(--orange); border-color: rgba(255,169,77,0.3); background: rgba(255,169,77,0.08); }
+        .auto-update-status.err i { color: var(--orange); }
+        .auto-update-note { display: none; margin-top: 14px; padding: 16px 18px; border-radius: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.8; color: var(--txt-soft); white-space: pre-wrap; max-height: 260px; overflow-y: auto; }
+        .auto-update-note.show { display: block; animation: panelIn 0.35s var(--ease-out); }
+
         /* ============ 服务器监测 ============ */
         .mon-live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--lime); position: relative; box-shadow: 0 0 10px var(--lime); }
         .mon-live-dot::after { content:''; position:absolute; inset:-5px; border-radius:50%; border:2px solid var(--lime); animation:pulse 1.6s ease-out infinite; }
@@ -462,6 +483,27 @@
 
             <!-- 管理安装包 -->
             <div id="packagesPanel" class="panel">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-title"><span class="ct-icon"><i class="fab fa-github"></i></span>GitHub 自动更新</div>
+                    </div>
+                    <div id="autoUpdateMessage" class="message"></div>
+                    <label class="toggle-row">
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="autoUploadToggle" onchange="toggleAutoUpload()">
+                            <span class="toggle-track"></span>
+                        </span>
+                        <span class="toggle-text">
+                            <b>自动上传新版本</b>
+                            <small>勾选后每小时自动检测 GitHub 最新 Release，发现新版本会用 GLM 免费模型提取更新内容、下载安装包并设为当前版本；不勾选则不自动上传。</small>
+                        </span>
+                    </label>
+                    <div class="auto-update-actions">
+                        <button class="btn btn-info" id="checkGithubBtn" onclick="checkGithubUpdate()"><i class="fab fa-github"></i> 自动检测 GitHub 新版本</button>
+                    </div>
+                    <div class="auto-update-status" id="autoUpdateStatus"><i class="fas fa-circle"></i><span id="autoUpdateStatusText">尚未检测</span></div>
+                    <div class="auto-update-note" id="autoUpdateNote"></div>
+                </div>
                 <div class="two-col">
                     <div class="card">
                         <div class="card-title" style="margin-bottom:22px;"><span class="ct-icon"><i class="fas fa-cloud-upload-alt"></i></span>上传安装包</div>
@@ -698,7 +740,7 @@
         function enterDashboard() {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('adminPage').classList.add('active');
-            loadUsers(); loadSMTPConfig(); loadPackages();
+            loadUsers(); loadSMTPConfig(); loadPackages(); loadAutoUpdateSettings();
         }
 
         async function adminLogout() { await fetch('/api/admin/logout', {method:'POST'}); location.reload(); }
@@ -889,6 +931,75 @@
             const data = await res.json();
             if (data.success) loadPackages();
             alert(data.message);
+        }
+
+        /* ============ GitHub 自动更新 ============ */
+        async function loadAutoUpdateSettings() {
+            try {
+                const res = await fetch('/api/admin/auto-update/status');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('autoUploadToggle').checked = !!data.enabled;
+                    if (data.last_check_time && data.last_check_result) {
+                        setAutoUpdateStatus(data.last_check_result.ok, data.last_check_result.message + ' · ' + data.last_check_time);
+                    }
+                }
+            } catch (e) { /* 忽略 */ }
+        }
+
+        function setAutoUpdateStatus(ok, text) {
+            const el = document.getElementById('autoUpdateStatus');
+            const txt = document.getElementById('autoUpdateStatusText');
+            if (!el) return;
+            el.className = 'auto-update-status ' + (ok ? 'ok' : 'err');
+            if (txt) txt.textContent = text || (ok ? '检测完成' : '检测失败');
+        }
+
+        async function toggleAutoUpload() {
+            const enabled = document.getElementById('autoUploadToggle').checked;
+            const msg = document.getElementById('autoUpdateMessage');
+            try {
+                const res = await fetch('/api/admin/auto-update/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({enabled})});
+                const data = await res.json();
+                msg.textContent = data.message || (enabled ? '已开启自动上传新版本' : '已关闭自动上传新版本');
+                msg.className = 'message ' + (data.success ? 'success' : 'error');
+                setTimeout(() => msg.className = 'message', 3000);
+            } catch (e) {
+                msg.textContent = '保存失败，请重试';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 3000);
+            }
+        }
+
+        async function checkGithubUpdate() {
+            const btn = document.getElementById('checkGithubBtn');
+            const msg = document.getElementById('autoUpdateMessage');
+            const noteEl = document.getElementById('autoUpdateNote');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner spin"></i> 正在检测…'; }
+            try {
+                const res = await fetch('/api/admin/auto-update/check', {method:'POST'});
+                const data = await res.json();
+                const r = data.result || {};
+                const ok = !!r.success;
+                setAutoUpdateStatus(ok, r.message || '检测完成');
+                msg.textContent = r.message || '检测完成';
+                msg.className = 'message ' + (ok ? 'success' : 'error');
+                setTimeout(() => msg.className = 'message', 8000);
+                if (r.update_note) {
+                    noteEl.textContent = r.update_note;
+                    noteEl.classList.add('show');
+                } else {
+                    noteEl.classList.remove('show');
+                }
+                if (r.uploaded) loadPackages();
+            } catch (e) {
+                setAutoUpdateStatus(false, '检测失败：网络错误');
+                msg.textContent = '检测失败：网络错误';
+                msg.className = 'message error';
+                setTimeout(() => msg.className = 'message', 5000);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-github"></i> 自动检测 GitHub 新版本'; }
+            }
         }
 
         /* ============ 服务器监测 ============ */

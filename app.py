@@ -18,6 +18,15 @@ try:
 except ImportError:
     psutil = None
     PSUTIL_AVAILABLE = False
+import threading
+import time
+import re
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    requests = None
+    REQUESTS_AVAILABLE = False
 
 # 东八区时区
 CHINA_TZ = timezone(timedelta(hours=8))
@@ -1496,19 +1505,609 @@ def admin_delete_package(filename):
     return jsonify({'success': True, 'message': '删除成功'})
 
 
+# ============ GitHub 自动更新（定时检测 + GLM 提取 + 自动上传） ============
+AUTO_UPDATE_DEFAULTS = {
+    'enabled': False,
+    'github_repo': 'DGLZR/frog-daliy-check',
+    'github_mirror': 'https://bdnb.cn',
+    'interval_minutes': 60,
+    'glm_api_key': 'e0f50530805f4ed0af556c4040d99eb3.DkyxdRgrogMYAWqs',
+    'glm_model': 'glm-4.7-flash',
+    'last_processed_tag': None,
+    'last_check_time': None,
+    'last_check_result': None,
+}
+
+def load_auto_update_settings():
+    """读取自动更新配置（含默认值兜底）"""
+    merged = dict(AUTO_UPDATE_DEFAULTS)
+    merged.update(config.get('auto_update', {}) or {})
+    return merged
+
+def save_auto_update_settings(updates):
+    """保存自动更新配置到 config.json"""
+    global config
+    if 'auto_update' not in config:
+        config['auto_update'] = {}
+    config['auto_update'].update(updates)
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    return config['auto_update']
+
+def _record_check(ok, message, extra=None):
+    """记录最近一次检测结果"""
+    updates = {
+        'last_check_time': get_china_time_str('%Y-%m-%d %H:%M:%S'),
+        'last_check_result': {'ok': bool(ok), 'message': message, 'time': get_china_time_str('%Y-%m-%d %H:%M:%S')},
+    }
+    if extra:
+        updates.update(extra)
+    save_auto_update_settings(updates)
+
+def fetch_github_releases(repo):
+    """拉取 GitHub 仓库的 releases（优先走国内镜像站，失败回退直连 GitHub）"""
+    if not REQUESTS_AVAILABLE:
+        raise RuntimeError('服务器未安装 requests 库，无法访问 GitHub')
+    owner, _, name = repo.partition('/')
+    owner = owner.strip(); name = name.strip()
+    if not owner or not name:
+        raise RuntimeError(f'仓库名格式错误: {repo}')
+
+    errors = []
+    # 1) 国内镜像站
+    mirror = (load_auto_update_settings().get('github_mirror') or 'https://bdnb.cn').rstrip('/')
+    try:
+        url = f'{mirror}/api/repos/{owner}/{name}/releases'
+        resp = requests.get(url, params={'page': 1, 'per_page': 100}, headers={
+            'Accept': 'application/json',
+            'User-Agent': 'FrogDailyCheck-AutoUpdate',
+        }, timeout=30)
+        if resp.status_code == 200:
+            payload = resp.json()
+            if isinstance(payload, dict) and 'data' in payload:
+                releases = payload.get('data')
+            elif isinstance(payload, list):
+                releases = payload
+            else:
+                releases = None
+            if isinstance(releases, list):
+                return [r for r in releases if not r.get('draft')]
+            errors.append('镜像站返回格式异常')
+        else:
+            errors.append(f'镜像站 HTTP {resp.status_code}')
+    except Exception as e:
+        errors.append(f'镜像站访问失败: {e}')
+
+    # 2) 回退直连 GitHub API
+    try:
+        url = f'https://api.github.com/repos/{owner}/{name}/releases'
+        resp = requests.get(url, headers={
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'FrogDailyCheck-AutoUpdate',
+        }, timeout=30)
+        if resp.status_code == 404:
+            raise RuntimeError('GitHub 仓库不存在或为私有仓库 (404)')
+        if resp.status_code == 403:
+            raise RuntimeError('GitHub API 访问受限 (403)，可能被限流')
+        resp.raise_for_status()
+        releases = resp.json()
+        if isinstance(releases, list):
+            return [r for r in releases if not r.get('draft')]
+        errors.append('GitHub 返回格式异常')
+    except RuntimeError:
+        raise
+    except Exception as e:
+        errors.append(f'GitHub 访问失败: {e}')
+
+    raise RuntimeError('；'.join(errors) if errors else '无法获取 releases')
+
+def call_glm_extract(body, api_key, model):
+    """调用 GLM 免费模型，提取更新内容并翻译成中文（带限流重试）"""
+    if not REQUESTS_AVAILABLE:
+        raise RuntimeError('服务器未安装 requests 库，无法调用 GLM')
+    if not api_key:
+        raise RuntimeError('未配置 GLM API Key')
+    prompt = (
+        '你是软件更新日志整理助手。请阅读下面这段 GitHub Release 的更新说明（可能中英混合、包含无关内容）。\n'
+        '任务：\n'
+        '1. 只提取其中描述「本次版本更新内容」的部分，忽略贡献者名单、Full Changelog、自动生成说明、链接、图标，以及「下一版本将…」等未来计划等无关内容。\n'
+        '2. 把提取出的每一条内容都翻译成简体中文。\n'
+        '3. 将每条内容归类到下面三种标题之一，且只能使用这三种：新增、优化、修复。\n'
+        '   - 新增：全新的功能或能力\n'
+        '   - 优化：对已有功能的改进、性能提升、体验优化\n'
+        '   - 修复：修复的 bug、问题或异常\n'
+        '4. 严格按下面的格式输出，每一条独占一行，以 "- " 开头。没有某类内容就省略该类标题。不要输出任何解释、编号或多余空行。\n'
+        '\n'
+        '格式示例：\n'
+        '新增\n'
+        '- xxx\n'
+        '- xxx\n'
+        '优化\n'
+        '- xxx\n'
+        '修复\n'
+        '- xxx\n'
+        '\n'
+        '更新说明如下：\n'
+        '---\n' + (body or '') + '\n---'
+    )
+    RETRY_KEYWORDS = ('429', '1305', '限流', 'rate limit', 'too many', '繁忙', '人数过多', '请求过多', '稍后')
+    last_error = None
+    for attempt in range(5):
+        try:
+            resp = requests.post(
+                'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+                json={'model': model, 'messages': [{'role': 'user', 'content': prompt}], 'temperature': 0.2, 'stream': False},
+                timeout=90,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data['choices'][0]['message']['content']
+            try:
+                err_msg = str(resp.json().get('error', {}).get('message', resp.text))
+            except Exception:
+                err_msg = resp.text or ''
+            msg = f'HTTP {resp.status_code} {err_msg}'
+            retryable = any(k in (str(resp.status_code) + ' ' + err_msg).lower() for k in RETRY_KEYWORDS)
+            if not retryable:
+                raise RuntimeError(msg)
+            last_error = RuntimeError(msg)
+        except RuntimeError as e:
+            if not any(k in str(e).lower() for k in RETRY_KEYWORDS):
+                raise
+            last_error = e
+        except Exception as e:
+            last_error = e
+        if attempt < 4:
+            print(f'[自动更新] GLM 繁忙/限流，{int(1.5 * (attempt + 1))}秒后重试 (第{attempt + 1}/5次)')
+            time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f'GLM 调用失败（已重试 5 次）: {last_error}')
+
+def _clean_item(line):
+    """清洗单条更新内容"""
+    line = line.strip()
+    line = re.sub(r'^[-*•·]\s*', '', line)
+    line = re.sub(r'^\d+[.)、]\s*', '', line)
+    return line.strip()
+
+def parse_update_note(text):
+    """把 GLM 输出解析为 {新增:[], 优化:[], 修复:[]}"""
+    result = {'新增': [], '优化': [], '修复': []}
+    if not text:
+        return result
+    current = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        m = re.match(r'^(新增|优化|修复)\s*[：:]\s*(.*)$', line)
+        if m:
+            current = m.group(1)
+            rest = m.group(2).strip()
+            if rest:
+                result[current].append(_clean_item(rest))
+            continue
+        if line in ('新增', '优化', '修复'):
+            current = line
+            continue
+        item = _clean_item(line)
+        if item and current:
+            result[current].append(item)
+    return result
+
+def format_update_note(parsed):
+    """把结构化更新内容格式化为固定文本（新增/优化/修复）"""
+    lines = []
+    for key in ('新增', '优化', '修复'):
+        items = parsed.get(key) or []
+        if items:
+            lines.append(f'{key}：')
+            for it in items:
+                lines.append(f'- {it}')
+    return '\n'.join(lines)
+
+def parse_version(v):
+    """解析版本号，返回可比较的键 (浮点数, 分段元组)。
+    同时兼容 0.3 > 0.25 这种十进制风格，以及 1.2.3 这种多段风格。"""
+    v = (v or '').strip().lower().lstrip('v')
+    m = re.search(r'\d+(\.\d+)*', v)
+    if not m:
+        return (0.0, (0,))
+    s = m.group(0)
+    parts = tuple(int(p) for p in s.split('.'))
+    try:
+        f = float(s)
+    except ValueError:
+        f = 0.0
+    return (f, parts)
+
+def compare_versions(a, b):
+    """比较两个版本号：a>b 返回 1，a<b 返回 -1，相等返回 0"""
+    pa, pb = parse_version(a), parse_version(b)
+    if pa > pb:
+        return 1
+    if pa < pb:
+        return -1
+    return 0
+
+def _pick_exe_asset(assets):
+    """从 release 资产里挑一个可下载的安装包（没有则返回 None）"""
+    if not assets:
+        return None
+    for ext in ('.exe', '.zip', '.7z', '.rar', '.msi'):
+        for a in assets:
+            n = (a.get('name') or '').lower()
+            if n.endswith(ext):
+                return a
+    return None
+
+def download_github_asset(asset, save_dir):
+    """下载 release 资产到 uploads 目录（优先镜像站下载代理），返回 (文件路径, 大小)"""
+    url = asset.get('browser_download_url')
+    if not url:
+        raise RuntimeError('该 release 没有可下载的文件资产')
+    name = secure_filename(asset.get('name') or 'package.exe') or 'package.exe'
+
+    base, ext = os.path.splitext(name)
+    if not ext:
+        ext = '.exe'
+    filename = f'{base}_{get_china_time_str("%Y%m%d_%H%M%S")}{ext}'
+    filepath = os.path.join(save_dir, filename)
+
+    errors = []
+    mirror = (load_auto_update_settings().get('github_mirror') or 'https://bdnb.cn').rstrip('/')
+    # 1) 镜像站下载代理
+    try:
+        from urllib.parse import quote
+        proxy_url = f'{mirror}/api/download/asset?url={quote(url, safe="")}&filename={quote(name, safe="")}&fast=1&mirror=0&proxy=1'
+        resp = requests.get(proxy_url, stream=True, headers={'User-Agent': 'FrogDailyCheck-AutoUpdate'}, timeout=600)
+        if resp.status_code == 200:
+            with open(filepath, 'wb') as f:
+                for chunk in resp.iter_content(8192):
+                    if chunk:
+                        f.write(chunk)
+            return filepath, os.path.getsize(filepath)
+        errors.append(f'镜像下载 HTTP {resp.status_code}')
+    except Exception as e:
+        errors.append(f'镜像下载失败: {e}')
+
+    # 2) 回退直连 GitHub
+    resp = requests.get(url, stream=True, headers={'User-Agent': 'FrogDailyCheck-AutoUpdate'}, timeout=600)
+    resp.raise_for_status()
+    with open(filepath, 'wb') as f:
+        for chunk in resp.iter_content(8192):
+            if chunk:
+                f.write(chunk)
+    return filepath, os.path.getsize(filepath)
+
+def register_auto_package(filepath, display_name, version, note, size):
+    """把下载好的安装包登记为安装包并设为当前版本"""
+    files_info = load_files_info()
+    files_info['files'].append({
+        'filename': os.path.basename(filepath),
+        'original_name': os.path.basename(filepath),
+        'display_name': display_name,
+        'version': version,
+        'size': size,
+        'upload_time': get_china_time().isoformat(),
+        'path': filepath,
+        'note': note,
+        'force_update': False,
+        'source': 'github-auto',
+    })
+    files_info['current_version'] = os.path.basename(filepath)
+    save_files_info(files_info)
+
+_update_lock = threading.Lock()
+
+def run_update_check(auto_upload=True):
+    """核心检测逻辑：同步 releases -> 判断是否新版本 -> 下载 -> 上传"""
+    with _update_lock:
+        settings = load_auto_update_settings()
+        last_tag = settings.get('last_processed_tag')
+        result = {
+            'success': False, 'has_update': False, 'uploaded': False,
+            'latest_version': '', 'current_version': last_tag or '无',
+            'update_note': '', 'message': '',
+        }
+
+        # 同步所有 releases（记录版本+时间），返回从新到旧列表
+        synced = sync_github_releases()
+        if not synced:
+            result['message'] = '无法获取 GitHub 版本信息'
+            _record_check(False, result['message'])
+            return result
+
+        latest = synced[0]
+        tag = latest.get('version') or ''
+        result['latest_version'] = tag
+
+        # 判断是否有新版本
+        is_new = (not last_tag) or (compare_versions(tag, last_tag) > 0)
+        if last_tag and compare_versions(tag, last_tag) == 0:
+            is_new = False
+
+        if not is_new:
+            result['success'] = True
+            result['message'] = '已是最新版本（本地 ' + str(last_tag) + '，GitHub ' + str(tag) + '）'
+            _record_check(True, result['message'])
+            return result
+
+        result['has_update'] = True
+        result['current_version'] = last_tag or '无'
+        result['update_note'] = latest.get('note') or latest.get('summary') or ''
+
+        if not auto_upload:
+            result['success'] = True
+            result['message'] = '检测到新版本 ' + str(tag) + '（自动上传未开启，仅检测）'
+            _record_check(True, result['message'])
+            return result
+
+        # 下载并上传
+        asset_info = latest.get('asset') or {}
+        github_url = asset_info.get('url') or ''
+        asset_name = asset_info.get('name') or 'package.exe'
+        if not github_url:
+            result['message'] = '检测到新版本 ' + str(tag) + '，但该 Release 没有可下载的安装包'
+            _record_check(False, result['message'])
+            return result
+
+        asset_obj = {'browser_download_url': github_url, 'name': asset_name}
+        try:
+            filepath, size = download_github_asset(asset_obj, UPLOAD_FOLDER)
+        except Exception as e:
+            result['message'] = '下载安装包失败：' + str(e)
+            _record_check(False, result['message'])
+            return result
+
+        version = tag.lstrip('vV')
+        note = result['update_note']
+        register_auto_package(filepath, '绿豆蛙日报助手', version, note, size)
+        _record_check(True, '已自动上传新版本 ' + str(tag) + ' 并设为当前版本', {'last_processed_tag': tag})
+
+        result['success'] = True
+        result['uploaded'] = True
+        result['message'] = '已自动上传新版本 ' + str(tag) + ' 并设为当前版本'
+        return result
+
+
+_auto_update_thread = None
+
+def _auto_update_worker():
+    """后台线程：定时同步全部版本记录（含发布时间）+ 检测新版本"""
+    time.sleep(30)  # 启动后先等待，避免服务器刚启动就立即检测
+    while True:
+        interval = 60
+        try:
+            settings = load_auto_update_settings()
+            interval = max(int(settings.get('interval_minutes', 60) or 60), 1)
+            auto_upload = bool(settings.get('enabled'))
+            run_update_check(auto_upload=auto_upload)
+        except Exception as e:
+            print('[自动更新] 定时任务异常: ' + str(e))
+        time.sleep(interval * 60)
+
+def start_auto_update_scheduler():
+    """启动后台自动更新检测线程（幂等）"""
+    global _auto_update_thread
+    if _auto_update_thread and _auto_update_thread.is_alive():
+        return
+    _auto_update_thread = threading.Thread(target=_auto_update_worker, daemon=True, name='auto-update-scheduler')
+    _auto_update_thread.start()
+    print('[自动更新] 后台检测线程已启动')
+
+
+# ============ 自动更新管理接口 ============
+@app.route('/api/admin/auto-update/settings', methods=['GET'])
+def admin_get_auto_update_settings():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    s = load_auto_update_settings()
+    safe = dict(s)
+    key = safe.get('glm_api_key', '')
+    safe['glm_api_key_configured'] = bool(key)
+    safe['glm_api_key'] = '********' if key else ''
+    return jsonify({'success': True, 'settings': safe})
+
+@app.route('/api/admin/auto-update/settings', methods=['POST'])
+def admin_update_auto_update_settings():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json or {}
+    updates = {}
+    if 'enabled' in data:
+        updates['enabled'] = bool(data['enabled'])
+    if 'interval_minutes' in data:
+        try:
+            updates['interval_minutes'] = max(int(data['interval_minutes']), 1)
+        except (TypeError, ValueError):
+            pass
+    if 'github_repo' in data:
+        repo = str(data['github_repo']).strip()
+        if repo:
+            updates['github_repo'] = repo
+    save_auto_update_settings(updates)
+    return jsonify({'success': True, 'message': '设置已保存'})
+
+@app.route('/api/admin/auto-update/check', methods=['POST'])
+def admin_auto_update_check():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    settings = load_auto_update_settings()
+    auto_upload = bool(settings.get('enabled'))
+    result = run_update_check(auto_upload=auto_upload)
+    return jsonify({'success': True, 'result': result})
+
+@app.route('/api/admin/auto-update/status', methods=['GET'])
+def admin_auto_update_status():
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    s = load_auto_update_settings()
+    return jsonify({
+        'success': True,
+        'enabled': bool(s.get('enabled')),
+        'github_repo': s.get('github_repo'),
+        'interval_minutes': s.get('interval_minutes'),
+        'last_check_time': s.get('last_check_time'),
+        'last_check_result': s.get('last_check_result'),
+        'last_processed_tag': s.get('last_processed_tag'),
+    })
+
+
+
 # ============ 版本历史接口 ============
+def format_china_datetime(iso):
+    """ISO 时间 -> 东八区 'YYYY-MM-DD HH:MM'"""
+    if not iso:
+        return ''
+    try:
+        dt = datetime.fromisoformat(str(iso).replace('Z', '+00:00'))
+        dt = dt.astimezone(CHINA_TZ)
+        return dt.strftime('%Y-%m-%d %H:%M')
+    except Exception:
+        return ''
+
+def load_versions_cache():
+    """读取版本缓存，返回 (versions, synced_at)"""
+    if os.path.exists(VERSIONS_FILE):
+        try:
+            with open(VERSIONS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data.get('versions', []), data.get('synced_at')
+        except Exception:
+            pass
+    return [], None
+
 def load_versions():
     """读取版本历史数据"""
-    if os.path.exists(VERSIONS_FILE):
-        with open(VERSIONS_FILE, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            return data.get('versions', [])
-    return []
+    versions, _ = load_versions_cache()
+    return versions
+
+def save_versions_cache(versions, synced_at):
+    """把版本列表写入缓存文件"""
+    with open(VERSIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump({'synced_at': synced_at, 'versions': versions}, f, ensure_ascii=False, indent=2)
+
+def _build_changes_and_note(body, api_key, model, cached):
+    """用 GLM 提取并翻译更新内容，返回 (summary, changes, note)。带缓存，失败回退原始说明。"""
+    if cached and cached.get('changes'):
+        return cached.get('summary', ''), cached.get('changes', []), cached.get('note', '')
+    try:
+        raw = call_glm_extract(body or '', api_key, model)
+        parsed = parse_update_note(raw)
+        changes = [{'type': k, 'text': t} for k in ('新增', '优化', '修复') for t in (parsed.get(k) or [])]
+        note = format_update_note(parsed)
+        summary = ('本次更新包含 ' + str(len(changes)) + ' 项改动') if changes else ''
+        return summary, changes, note
+    except Exception as e:
+        print('[自动更新] GLM 提取失败，回退原始说明: ' + str(e))
+        fallback = (body or '').strip()
+        if len(fallback) > 400:
+            fallback = fallback[:400] + '...'
+        return fallback, [], fallback
+
+def _is_version_like(s):
+    """判断字符串是否像纯版本号（如 v0.3、0.25、1.2.3）"""
+    s = (s or '').strip().lower().lstrip('v')
+    if not s:
+        return False
+    return all(ch.isdigit() or ch == '.' for ch in s)
+
+def _extract_title(name, tag, body):
+    """从 release 名或正文提取一个可读标题"""
+    name = (name or '').strip()
+    tag = (tag or '').strip()
+    if name and name.lower() != tag.lower() and not _is_version_like(name):
+        return name
+    if body:
+        for line in str(body).splitlines():
+            t = line.strip()
+            if t.startswith('#'):
+                t = t.lstrip('#').strip()
+            t = t.replace('*', '').replace('_', '').replace('`', '').strip()
+            if t:
+                return t[:50]
+    return tag or '版本'
+
+def sync_github_releases():
+    """同步所有 GitHub releases 到本地缓存（记录版本号 + 发布时间 + GLM 翻译），返回从新到旧的版本列表"""
+    settings = load_auto_update_settings()
+    repo = settings.get('github_repo', 'DGLZR/frog-daliy-check')
+    api_key = settings.get('glm_api_key')
+    model = settings.get('glm_model')
+    mirror = (settings.get('github_mirror') or 'https://bdnb.cn').rstrip('/')
+
+    old_versions, _ = load_versions_cache()
+    old_map = {}
+    for ov in old_versions:
+        tag = ov.get('version') or ov.get('tag_name') or ''
+        # 只复用带 datetime 的真实同步记录（避免旧占位数据污染）
+        if tag and ov.get('datetime'):
+            old_map[str(tag).lower()] = ov
+
+    try:
+        releases = fetch_github_releases(repo)
+    except Exception as e:
+        print('[自动更新] 同步 releases 失败: ' + str(e))
+        return old_versions
+
+    if not releases:
+        return old_versions
+
+    from urllib.parse import quote
+    synced = []
+    for r in releases:
+        tag = (r.get('tag_name') or '').strip()
+        name = (r.get('name') or '').strip()
+        dt = format_china_datetime(r.get('published_at') or r.get('created_at'))
+        date = dt.split(' ')[0] if dt else ''
+
+        cached = old_map.get(str(tag).lower())
+        summary, changes, note = _build_changes_and_note(r.get('body'), api_key, model, cached)
+
+        asset = _pick_exe_asset(r.get('assets') or [])
+        asset_name = (asset.get('name') or '') if asset else ''
+        github_url = (asset.get('browser_download_url') or '') if asset else ''
+        download_url = None
+        if github_url:
+            download_url = mirror + '/api/download/asset?url=' + quote(github_url, safe='') + '&filename=' + quote(asset_name, safe='') + '&fast=1&mirror=0&proxy=1'
+
+        title = _extract_title(name, tag, r.get('body'))
+        if changes and changes[0].get('text'):
+            title = changes[0]['text']
+            if len(title) > 24:
+                title = title[:24] + '...'
+
+        record = {
+            'version': tag,
+            'date': date,
+            'datetime': dt,
+            'title': title,
+            'channel': '预发布' if r.get('prerelease') else '稳定版',
+            'summary': summary,
+            'changes': changes,
+            'note': note,
+            'html_url': r.get('html_url'),
+            'raw_body': (r.get('body') or '').strip(),
+            'download_url': download_url,
+            'size': (asset.get('size', 0) if asset else 0),
+            'asset': {'name': asset_name, 'url': github_url} if asset else None,
+        }
+        synced.append(record)
+
+    synced.sort(key=lambda x: (x.get('datetime') or '', x.get('version') or ''), reverse=True)
+
+    save_versions_cache(synced, get_china_time_str('%Y-%m-%d %H:%M:%S'))
+    return synced
 
 @app.route('/api/versions', methods=['GET'])
 def get_versions():
-    """获取版本更新历史（按时间从新到旧）"""
-    versions = load_versions()
+    """获取版本更新历史（覆盖全部版本，按时间从新到旧）"""
+    versions, synced_at = load_versions_cache()
+    if not versions:
+        versions = sync_github_releases()
+        _, synced_at = load_versions_cache()
+
     files_info = load_files_info()
     files = files_info.get('files', [])
     current = files_info.get('current_version')
@@ -1516,24 +2115,33 @@ def get_versions():
     result = []
     for v in versions:
         item = dict(v)
-        filename = item.get('filename')
-        f = next((x for x in files if x['filename'] == filename), None)
-        # 仅当文件真实存在时才提供下载链接
-        exists = bool(f and os.path.exists(os.path.join(UPLOAD_FOLDER, filename)))
-        if f and exists:
-            item['download_url'] = f"/download/{filename}"
-            item['size'] = f.get('size', 0)
-            item['is_current'] = (filename == current)
-        else:
-            item['download_url'] = None
-            item['size'] = 0
-            item['is_current'] = False
+        item.setdefault('is_current', False)
+        item.setdefault('download_url', None)
+        item.setdefault('size', 0)
+
+        tag = str(item.get('version', '')).lstrip('vV')
+        asset_name = ((item.get('asset') or {}).get('name')) or ''
+
+        local = None
+        for f in files:
+            fver = str(f.get('version', '')).lstrip('vV')
+            if fver and tag and fver == tag:
+                local = f
+                break
+        if not local and asset_name:
+            for f in files:
+                if f.get('original_name') == asset_name or f.get('filename') == asset_name:
+                    local = f
+                    break
+
+        if local and os.path.exists(os.path.join(UPLOAD_FOLDER, local['filename'])):
+            item['download_url'] = '/download/' + local['filename']
+            item['size'] = local.get('size', item.get('size', 0))
+            item['is_current'] = (local['filename'] == current)
+
         result.append(item)
 
-    # 按日期从新到旧排序（越靠近现在越靠前）
-    result.sort(key=lambda x: x.get('date', ''), reverse=True)
-
-    return jsonify({'success': True, 'versions': result, 'count': len(result)})
+    return jsonify({'success': True, 'versions': result, 'count': len(result), 'synced_at': synced_at})
 
 
 # ============ 版本检查接口 ============
@@ -1744,4 +2352,5 @@ def admin_server_stats():
 
 if __name__ == '__main__':
     init_csv()
+    start_auto_update_scheduler()
     app.run(host='0.0.0.0', port=5000, debug=True)

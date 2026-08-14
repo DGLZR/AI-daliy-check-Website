@@ -50,6 +50,17 @@
     "button_subtext": "获取最新版本",
     "note": "支持GLM-4.6V-Flash和Ollama本地模型"
   },
+  "auto_update": {
+    "enabled": false,
+    "github_repo": "DGLZR/frog-daliy-check",
+    "github_mirror": "https://bdnb.cn",
+    "interval_minutes": 60,
+    "glm_api_key": "e0f50530805f4ed0af556c4040d99eb3.DkyxdRgrogMYAWqs",
+    "glm_model": "glm-4.7-flash",
+    "last_processed_tag": null,
+    "last_check_time": null,
+    "last_check_result": null
+  },
   "smtp": {
     "server": "smtp.qq.com",
     "port": 465,
