@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>版本更新与历史版本下载 - 绿豆蛙日报助手</title>
+    <link rel="icon" href="favicon.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="versions.css">
+</head>
+<body>
+    <!-- 粒子背景 -->
+    <canvas id="particles" aria-hidden="true"></canvas>
+
+    <!-- 环境光晕 -->
+    <div class="ambient" aria-hidden="true">
+        <div class="glow glow-a"></div>
+        <div class="glow glow-b"></div>
+        <div class="glow glow-c"></div>
+        <div class="grid"></div>
+    </div>
+
+    <!-- 阅读进度条 -->
+    <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+
+    <!-- 导航 -->
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                <img src="favicon.jpg" alt="绿豆蛙" class="logo-img">
+                <span>绿豆蛙<em>日报助手</em></span>
+            </a>
+            <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> 返回首页</a>
+        </div>
+    </nav>
+
+    <!-- 开场 -->
+    <header class="hero">
+        <div class="hero-inner">
+            <span class="hero-eyebrow"><span class="pulse-dot"></span> CHANGELOG · 更新日志</span>
+            <h1>每一次更新，<br>都离<span class="grad-text">更聪明</span>更进一步</h1>
+            <p class="hero-sub">
+                这里记录着绿豆蛙日报助手的成长轨迹——从第一个内测版本到今天的完整形态。
+                每一个版本，都是为了让你的工作被更好地记住。
+            </p>
+            <div class="hero-stats">
+                <div class="hs-item">
+                    <strong id="versionCount" data-count="0">0</strong>
+                    <span>累计发布版本</span>
+                </div>
+                <div class="hs-divider"></div>
+                <div class="hs-item">
+                    <strong id="latestVersion">—</strong>
+                    <span>当前最新版本</span>
+                </div>
+                <div class="hs-divider"></div>
+                <div class="hs-item">
+                    <strong id="firstDate">—</strong>
+                    <span>自首次发布</span>
+                </div>
+            </div>
+            <a href="#timeline" class="scroll-down" aria-label="向下滚动">
+                <span class="mouse"><span class="wheel"></span></span>
+                <i>探索更新历史</i>
+            </a>
+        </div>
+    </header>
+
+    <!-- 最新版本高亮 -->
+    <section class="current-wrap">
+        <div class="current-card glass" id="currentCard">
+            <!-- JS 动态注入 -->
+            <div class="current-loading">
+                <span class="spinner"></span>
+                <p>正在加载最新版本…</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 时间线 -->
+    <section id="timeline" class="timeline">
+        <div class="timeline-head reveal">
+            <span class="section-tag">历史版本</span>
+            <h2>版本时间线</h2>
+            <p>从最新到最古早，一条线看尽绿豆蛙的成长</p>
+        </div>
+        <div class="timeline-wrap">
+            <div class="timeline-line" aria-hidden="true"><span class="line-spark"></span></div>
+            <div class="timeline-items" id="timelineItems">
+                <!-- JS 动态注入 -->
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-logo">
+                <img src="favicon.jpg" alt="绿豆蛙" class="footer-frog">
+                <span>绿豆蛙<em>日报助手</em></span>
+            </div>
+            <p class="footer-text">让 AI 替你记住这一天 · 每一次更新都是新的开始</p>
+            <a href="/" class="footer-link"><i class="fas fa-download"></i> 前往下载最新版</a>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 绿豆蛙日报助手. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    <!-- 回到顶部 -->
+    <button id="backTop" aria-label="回到顶部"><i class="fas fa-chevron-up"></i></button>
+
+    <script src="versions.js"></script>
+</body>
+</html>

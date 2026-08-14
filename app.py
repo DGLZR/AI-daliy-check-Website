@@ -42,6 +42,7 @@ USERS_CSV = os.path.join(DATA_DIR, 'users.csv')
 DETAIL_CSV = os.path.join(DATA_DIR, 'detail_person_data.csv')
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 FILES_INFO_PATH = os.path.join(BASE_DIR, 'files_info.json')
+VERSIONS_FILE = os.path.join(BASE_DIR, 'versions.json')
 
 # 管理员账号
 ADMIN_USERNAME = 'frog'
@@ -478,6 +479,11 @@ def admin_redirect():
 @app.route('/login')
 def login_page():
     return send_from_directory('static', 'login.html')
+
+@app.route('/versions')
+def versions_page():
+    """版本更新与历史版本下载页面"""
+    return send_from_directory('static', 'versions.html')
 
 @app.route('/user/<email>')
 def user_profile_page(email):
@@ -1488,6 +1494,46 @@ def admin_delete_package(filename):
     save_files_info(files_info)
     
     return jsonify({'success': True, 'message': '删除成功'})
+
+
+# ============ 版本历史接口 ============
+def load_versions():
+    """读取版本历史数据"""
+    if os.path.exists(VERSIONS_FILE):
+        with open(VERSIONS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('versions', [])
+    return []
+
+@app.route('/api/versions', methods=['GET'])
+def get_versions():
+    """获取版本更新历史（按时间从新到旧）"""
+    versions = load_versions()
+    files_info = load_files_info()
+    files = files_info.get('files', [])
+    current = files_info.get('current_version')
+
+    result = []
+    for v in versions:
+        item = dict(v)
+        filename = item.get('filename')
+        f = next((x for x in files if x['filename'] == filename), None)
+        # 仅当文件真实存在时才提供下载链接
+        exists = bool(f and os.path.exists(os.path.join(UPLOAD_FOLDER, filename)))
+        if f and exists:
+            item['download_url'] = f"/download/{filename}"
+            item['size'] = f.get('size', 0)
+            item['is_current'] = (filename == current)
+        else:
+            item['download_url'] = None
+            item['size'] = 0
+            item['is_current'] = False
+        result.append(item)
+
+    # 按日期从新到旧排序（越靠近现在越靠前）
+    result.sort(key=lambda x: x.get('date', ''), reverse=True)
+
+    return jsonify({'success': True, 'versions': result, 'count': len(result)})
 
 
 # ============ 版本检查接口 ============

@@ -69,6 +69,9 @@ body {
 .nav-link::after { content: ''; position: absolute; bottom: -6px; left: 0; width: 0; height: 2px; background: var(--green); border-radius: 2px; transition: var(--transition); }
 .nav-link:hover, .nav-link.active { color: var(--green-deep); }
 .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+.nav-version { display: inline-flex; align-items: center; gap: 6px; color: var(--green-deep); background: rgba(47, 158, 68, 0.1); border: 1px solid rgba(47, 158, 68, 0.28); padding: 6px 15px; border-radius: 999px; }
+.nav-version::after { display: none; }
+.nav-version:hover { background: rgba(47, 158, 68, 0.18); border-color: var(--green); }
 .nav-auth { display: flex; gap: 10px; align-items: center; }
 .auth-btn { padding: 9px 22px; border-radius: 999px; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: var(--transition); }
 .login-btn { color: var(--green-deep); border: 1.5px solid var(--green); background: transparent; }
@@ -262,6 +265,19 @@ body {
 .download-button span { font-size: 1.25rem; font-weight: 700; }
 .download-button small { font-size: 0.85rem; opacity: 0.85; }
 .download-note { margin-top: 20px; color: var(--ink-faint); font-size: 0.9rem; }
+.version-history-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    margin-top: 18px; padding: 13px 26px; border-radius: 12px;
+    color: var(--green-deep); text-decoration: none; font-weight: 600; font-size: 0.95rem;
+    background: var(--paper); border: 1.5px solid var(--green);
+    transition: var(--transition);
+}
+.version-history-btn:hover {
+    background: rgba(47, 158, 68, 0.1); transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(47, 158, 68, 0.22);
+}
+.version-history-btn .fa-arrow-right { font-size: 0.8rem; transition: transform 0.3s ease; }
+.version-history-btn:hover .fa-arrow-right { transform: translateX(4px); }
 
 /* ==================== 页脚 ==================== */
 .footer { background: var(--green-dark); color: #fff; padding: 64px 0 32px; }
