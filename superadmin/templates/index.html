@@ -210,6 +210,23 @@
         .password-container input { padding-right: 48px; }
         .toggle-password { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--txt-faint); font-size: 1rem; cursor: pointer; transition: color 0.25s var(--ease); user-select: none; }
         .toggle-password:hover { color: var(--lime); }
+        .form-group textarea { width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1.5px solid var(--line); border-radius: 12px; color: var(--txt); font-size: 0.9rem; transition: all 0.3s var(--ease); resize: vertical; min-height: 110px; font-family: var(--font-mono); line-height: 1.6; }
+        .form-group textarea:focus { outline: none; border-color: var(--lime); background: rgba(169,227,75,0.05); box-shadow: 0 0 0 4px rgba(169,227,75,0.08); }
+        .md-actions { display: flex; align-items: center; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+        .btn-sm { padding: 6px 14px; font-size: 0.74rem; }
+        .md-hint { font-size: 0.74rem; color: var(--txt-faint); }
+        .md-hint i { color: var(--lime); margin-right: 4px; }
+        .md-preview { margin-top: 12px; padding: 16px 18px; background: rgba(0,0,0,0.28); border: 1px solid var(--line-strong); border-radius: 12px; color: var(--txt-soft); font-size: 0.88rem; line-height: 1.8; max-height: 260px; overflow-y: auto; animation: panelIn 0.3s var(--ease-out); }
+        .md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 { color: var(--lime); font-family: var(--font-display); margin: 10px 0 6px; }
+        .md-preview h1 { font-size: 1.3rem; } .md-preview h2 { font-size: 1.15rem; } .md-preview h3 { font-size: 1rem; } .md-preview h4 { font-size: 0.92rem; }
+        .md-preview ul, .md-preview ol { padding-left: 22px; margin: 6px 0; }
+        .md-preview li { margin: 3px 0; }
+        .md-preview code { background: rgba(169,227,75,0.12); color: var(--lime); padding: 2px 6px; border-radius: 5px; font-size: 0.82rem; font-family: var(--font-mono); }
+        .md-preview pre { background: rgba(0,0,0,0.35); padding: 12px; border-radius: 9px; overflow-x: auto; margin: 8px 0; }
+        .md-preview pre code { background: transparent; padding: 0; }
+        .md-preview a { color: var(--blue); }
+        .md-preview p { margin: 6px 0; }
+        .md-preview strong { color: var(--txt); }
 
         .message { padding: 13px 17px; border-radius: 11px; margin-bottom: 18px; display: none; font-size: 0.86rem; font-weight: 600; animation: panelIn 0.3s var(--ease-out); }
         .message.success { background: rgba(169,227,75,0.1); color: var(--lime); border: 1px solid rgba(169,227,75,0.3); display: block; }
@@ -499,7 +516,7 @@
                         </span>
                     </label>
                     <div class="auto-update-actions">
-                        <button class="btn btn-info" id="checkGithubBtn" onclick="checkGithubUpdate()"><i class="fab fa-github"></i> 自动检测 GitHub 新版本</button>
+                        <button class="btn btn-info" id="checkGithubBtn" onclick="checkGithubUpdate()"><i class="fab fa-github"></i> 手动检测 GitHub 新版本</button>
                     </div>
                     <div class="auto-update-status" id="autoUpdateStatus"><i class="fas fa-circle"></i><span id="autoUpdateStatusText">尚未检测</span></div>
                     <div class="auto-update-note" id="autoUpdateNote"></div>
@@ -517,7 +534,15 @@
                                 <option value="1">是 - 强制更新，隐藏关闭按钮</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>版本说明</label><input type="text" id="packageNote" placeholder="例如：修复了 xxx 问题"></div>
+                        <div class="form-group">
+                            <label>版本说明（支持 Markdown，软件端将渲染效果）</label>
+                            <textarea id="packageNote" rows="6" placeholder="支持 Markdown 语法，例如：&#10;&#10;### 新增&#10;- 新功能一&#10;- 新功能二&#10;&#10;### 修复&#10;- 修复了 xxx 问题" oninput="updateNotePreview()"></textarea>
+                            <div class="md-actions">
+                                <button type="button" class="btn btn-info btn-sm" onclick="toggleNotePreview()"><i class="fas fa-eye"></i> <span id="notePreviewBtnText">预览效果</span></button>
+                                <span class="md-hint"><i class="fas fa-info-circle"></i> 支持标题 #、加粗 **、列表 -、行内代码 `</span>
+                            </div>
+                            <div class="md-preview" id="packageNotePreview" style="display:none;"></div>
+                        </div>
                         <div class="form-group"><label>选择安装包文件</label><input type="file" id="packageFile" accept=".exe,.zip,.rar,.7z"></div>
                         <button class="btn btn-success" onclick="uploadPackage()" style="padding:12px 26px;font-size:0.88rem;"><i class="fas fa-upload"></i> 上传安装包</button>
                     </div>
@@ -869,7 +894,7 @@
                         <div class="package-meta">
                             <span><i class="fas fa-database"></i>${(pkg.size / 1024 / 1024).toFixed(2)} MB</span>
                             <span><i class="far fa-calendar"></i>${new Date(pkg.upload_time).toLocaleString()}</span>
-                            ${pkg.note ? `<span><i class="fas fa-pen-nib"></i>${pkg.note}</span>` : ''}
+                            ${pkg.note ? `<span><i class="fas fa-pen-nib"></i>${pkg.note.replace(/\n/g, ' ').slice(0, 60)}${pkg.note.length > 60 ? '…' : ''}</span>` : ''}
                         </div>
                     </div>
                     <div class="package-actions">
@@ -913,6 +938,10 @@
                     document.getElementById('packageVersion').value = '';
                     document.getElementById('packageNote').value = '';
                     document.getElementById('packageForce').value = '0';
+                    const mdPrev = document.getElementById('packageNotePreview');
+                    if (mdPrev) { mdPrev.style.display = 'none'; mdPrev.innerHTML = ''; }
+                    const mdBtn = document.getElementById('notePreviewBtnText');
+                    if (mdBtn) mdBtn.textContent = '预览效果';
                     loadPackages();
                 }
             } catch (e) { fail('上传失败'); }
@@ -931,6 +960,53 @@
             const data = await res.json();
             if (data.success) loadPackages();
             alert(data.message);
+        }
+
+        /* ============ Markdown 版本说明 ============ */
+        function mdInline(s) {
+            s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+            s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+            return s;
+        }
+
+        function mdToHtml(md) {
+            if (!md) return '<p class="md-empty">（空）</p>';
+            var text = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = text.replace(/```([\s\S]*?)```/g, function (m, code) { return '<pre><code>' + code.trim() + '</code></pre>'; });
+            var lines = text.split(/\n/);
+            var html = [], list = null;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) { if (list) { html.push(list); list = null; } continue; }
+                var h = line.match(/^(#{1,6})\s+(.*)$/);
+                if (h) { if (list) { html.push(list); list = null; } var lv = h[1].length; html.push('<h' + lv + '>' + mdInline(h[2]) + '</h' + lv + '>'); continue; }
+                var ul = line.match(/^[-*•]\s+(.*)$/);
+                if (ul) { if (list !== 'ul') { if (list) html.push(list); list = '<ul>'; } list += '<li>' + mdInline(ul[1]) + '</li>'; continue; }
+                var ol = line.match(/^\d+[.)]\s+(.*)$/);
+                if (ol) { if (list !== 'ol') { if (list) html.push(list); list = '<ol>'; } list += '<li>' + mdInline(ol[1]) + '</li>'; continue; }
+                if (list) { html.push(list); list = null; }
+                html.push('<p>' + mdInline(line) + '</p>');
+            }
+            if (list) html.push(list);
+            return html.join('');
+        }
+
+        function updateNotePreview() {
+            const el = document.getElementById('packageNotePreview');
+            if (!el) return;
+            el.innerHTML = mdToHtml(document.getElementById('packageNote').value);
+        }
+
+        function toggleNotePreview() {
+            const el = document.getElementById('packageNotePreview');
+            const btn = document.getElementById('notePreviewBtnText');
+            if (!el) return;
+            const show = el.style.display === 'none';
+            el.style.display = show ? 'block' : 'none';
+            if (show) updateNotePreview();
+            if (btn) btn.textContent = show ? '收起预览' : '预览效果';
         }
 
         /* ============ GitHub 自动更新 ============ */
@@ -998,7 +1074,7 @@
                 msg.className = 'message error';
                 setTimeout(() => msg.className = 'message', 5000);
             } finally {
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-github"></i> 自动检测 GitHub 新版本'; }
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fab fa-github"></i> 手动检测 GitHub 新版本'; }
             }
         }
 

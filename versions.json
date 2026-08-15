@@ -14,7 +14,7 @@
           "text": "集成云基础设施（包括下载服务器、落地页、用户资料页和管理后台系统），构建了从身份验证到复杂数据通信的完整云到软件生态系统，使系统达到生产就绪状态。"
         }
       ],
-      "note": "新增：\n- 集成云基础设施（包括下载服务器、落地页、用户资料页和管理后台系统），构建了从身份验证到复杂数据通信的完整云到软件生态系统，使系统达到生产就绪状态。",
+      "note": "### 新增\n- 集成云基础设施（包括下载服务器、落地页、用户资料页和管理后台系统），构建了从身份验证到复杂数据通信的完整云到软件生态系统，使系统达到生产就绪状态。",
       "html_url": "https://github.com/DGLZR/frog-daliy-check/releases/tag/v0.3",
       "raw_body": "# The third version of frog-daliy-summary\r\n\r\n## New Feature: This is a major release — not just a module update or bug fix, but a significant leap forward.\r\n### Integrated cloud infrastructure — including download servers, landing pages, user profile pages, and an admin management system — and built out the entire cloud-to-software ecosystem, from authentication to complex data communication, bringing the system to a production-ready state.\r\n\r\n\r\n## The next version will include an updated time period heatmap. But maybe fix some small problem first.",
       "download_url": "https://bdnb.cn/api/download/asset?url=https%3A%2F%2Fgithub.com%2FDGLZR%2Ffrog-daliy-check%2Freleases%2Fdownload%2Fv0.3%2Ffrog-daliy-check.v0.3.exe&filename=frog-daliy-check.v0.3.exe&fast=1&mirror=0&proxy=1",
@@ -41,7 +41,7 @@
           "text": "修复了若干问题"
         }
       ],
-      "note": "优化：\n- 优化了 UI 布局\n修复：\n- 修复了若干问题",
+      "note": "### 优化\n- 优化了 UI 布局\n### 修复\n- 修复了若干问题",
       "html_url": "https://github.com/DGLZR/frog-daliy-check/releases/tag/v0.25",
       "raw_body": "# The second point five version of frog-daliy-summary.\r\n## New Feature: Optimized UI layout & fixed several issues.\r\n## The next version will include an updated time period heatmap.",
       "download_url": "https://bdnb.cn/api/download/asset?url=https%3A%2F%2Fgithub.com%2FDGLZR%2Ffrog-daliy-check%2Freleases%2Fdownload%2Fv0.25%2Ffrog-daliy-check.v0.25.exe&filename=frog-daliy-check.v0.25.exe&fast=1&mirror=0&proxy=1",
@@ -68,7 +68,7 @@
           "text": "支持识别并 AI 总结已完成任务"
         }
       ],
-      "note": "新增：\n- AI-daliy-summary 的首个版本\n- 支持识别并 AI 总结已完成任务",
+      "note": "### 新增\n- AI-daliy-summary 的首个版本\n- 支持识别并 AI 总结已完成任务",
       "html_url": "https://github.com/DGLZR/frog-daliy-check/releases/tag/v0.1",
       "raw_body": "# v0.1 AI-daliy-summary\r\n## The first version of the AI-daliy summary. \r\n## Supports recognizing and AI-summarizing completed tasks.",
       "download_url": "https://bdnb.cn/api/download/asset?url=https%3A%2F%2Fgithub.com%2FDGLZR%2Ffrog-daliy-check%2Freleases%2Fdownload%2Fv0.1%2FWorkDiary_20260719_155907.exe&filename=WorkDiary_20260719_155907.exe&fast=1&mirror=0&proxy=1",
@@ -91,7 +91,7 @@
           "text": "引入基于 AI 的每日、每周和每月报告生成功能。提供大量内置模板，并支持广泛的自定义选项以创建您自己的模板。"
         }
       ],
-      "note": "新增：\n- 引入基于 AI 的每日、每周和每月报告生成功能。提供大量内置模板，并支持广泛的自定义选项以创建您自己的模板。",
+      "note": "### 新增\n- 引入基于 AI 的每日、每周和每月报告生成功能。提供大量内置模板，并支持广泛的自定义选项以创建您自己的模板。",
       "html_url": "https://github.com/DGLZR/frog-daliy-check/releases/tag/V0.2",
       "raw_body": "# The second version of frog-daliy-summary.\r\n## New Feature: Introducing AI-powered daily, weekly, and monthly report generation. A wide selection of built-in templates is available,along with extensive customization options to create your own.\r\n\r\n## The next version will include an updated time period heatmap.",
       "download_url": "https://bdnb.cn/api/download/asset?url=https%3A%2F%2Fgithub.com%2FDGLZR%2Ffrog-daliy-check%2Freleases%2Fdownload%2FV0.2%2FWorkDiary.v0.2.exe&filename=WorkDiary.v0.2.exe&fast=1&mirror=0&proxy=1",

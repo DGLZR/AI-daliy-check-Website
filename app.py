@@ -1696,12 +1696,12 @@ def parse_update_note(text):
     return result
 
 def format_update_note(parsed):
-    """把结构化更新内容格式化为固定文本（新增/优化/修复）"""
+    """把结构化更新内容格式化为 Markdown 文本（### 新增/优化/修复 + 列表）"""
     lines = []
     for key in ('新增', '优化', '修复'):
         items = parsed.get(key) or []
         if items:
-            lines.append(f'{key}：')
+            lines.append(f'### {key}')
             for it in items:
                 lines.append(f'- {it}')
     return '\n'.join(lines)
