@@ -847,6 +847,88 @@ def calculate_token_stats(email):
         'today_total': today_analysis + today_report,
         'all_total': all_analysis + all_report
     }
+def calculate_token_daily(email):
+    """按天聚合 token 用量（活动分析 + 报告生成），返回按日期排序的明细"""
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    report_folder = os.path.join(user_folder, 'report')
+
+    days = {}
+
+    # ---- 活动分析 token（records.csv 按日期聚合输入/输出）----
+    if os.path.exists(records_file):
+        with open(records_file, 'r', encoding='utf-8', newline='') as f:
+            for row in csv.DictReader(f):
+                d = row.get('日期', '')
+                if not d:
+                    continue
+                dd = days.setdefault(d, {'analysis_input': 0, 'analysis_output': 0, 'report_input': 0, 'report_output': 0})
+                try:
+                    dd['analysis_input'] += int(float(row.get('输入token数', 0) or 0))
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    dd['analysis_output'] += int(float(row.get('输出token数', 0) or 0))
+                except (TypeError, ValueError):
+                    pass
+
+    # ---- 报告生成 token（各报告 .md 文件头按日期聚合输入/输出）----
+    if os.path.exists(report_folder):
+        for filename in os.listdir(report_folder):
+            if not filename.endswith('.md'):
+                continue
+            filepath = os.path.join(report_folder, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception:
+                continue
+            gen_date = ''
+            t_in = 0
+            t_out = 0
+            for line in content.split('\n'):
+                if '**生成时间：**' in line:
+                    try:
+                        gen_date = datetime.strptime(line.split('：', 1)[-1].strip().lstrip('*').strip(), '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+                    except Exception:
+                        gen_date = ''
+                if '**输入Token：**' in line:
+                    try:
+                        t_in = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                    except (TypeError, ValueError):
+                        t_in = 0
+                if '**输出Token：**' in line:
+                    try:
+                        t_out = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                    except (TypeError, ValueError):
+                        t_out = 0
+            if gen_date:
+                dd = days.setdefault(gen_date, {'analysis_input': 0, 'analysis_output': 0, 'report_input': 0, 'report_output': 0})
+                dd['report_input'] += t_in
+                dd['report_output'] += t_out
+
+    dates = sorted(days.keys())
+    return {
+        'dates': dates,
+        'analysis_input': [days[d]['analysis_input'] for d in dates],
+        'analysis_output': [days[d]['analysis_output'] for d in dates],
+        'report_input': [days[d]['report_input'] for d in dates],
+        'report_output': [days[d]['report_output'] for d in dates],
+    }
+
+@app.route('/api/user/token-daily/<email>', methods=['GET'])
+def get_user_token_daily(email):
+    """获取按天聚合的 token 用量明细（用于柱状图）"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    return jsonify({'success': True, 'daily': calculate_token_daily(email)})
+
+@app.route('/api/user/token-stats/<email>', methods=['GET'])
+def get_user_token_stats(email):
+    """获取 token 用量统计（累计/今日），无需用户登录（供超管查看）"""
+    if not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    return jsonify({'success': True, 'tokens': calculate_token_stats(email)})
 @app.route('/api/user/stats/<email>', methods=['GET'])
 def get_user_stats_api(email):
     """获取用户统计数据（需要登录状态）"""
@@ -1264,6 +1346,9 @@ def get_user_reports(email):
                             except (TypeError, ValueError):
                                 token_output = 0
                     
+                    # 原始生成时间（用于排序）
+                    sort_time = generate_time
+
                     # 格式化时间
                     if generate_time:
                         try:
@@ -1287,13 +1372,14 @@ def get_user_reports(email):
                         'status': '已完成',
                         'token_total': token_total,
                         'token_input': token_input,
-                        'token_output': token_output
+                        'token_output': token_output,
+                        'sort_time': sort_time
                     })
                 except:
                     pass
     
-    # 按时间倒序排序
-    reports.sort(key=lambda x: x.get('filename', ''), reverse=True)
+    # 按生成时间倒序排序（新到旧）
+    reports.sort(key=lambda x: x.get('sort_time', '') or x.get('filename', ''), reverse=True)
     
     return jsonify({'success': True, 'reports': reports})
 

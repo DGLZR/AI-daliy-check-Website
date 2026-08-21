@@ -421,6 +421,19 @@
         .ts-breakdown span { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); padding: 3px 10px; border-radius: 999px; }
         .ts-breakdown b { font-family: var(--font-mono); color: var(--green-deep); font-weight: 700; }
         @media (max-width: 760px) { .token-stats { grid-template-columns: 1fr; } .ts-breakdown { display: none; } }
+        /* Token 详细图表 */
+        .token-chart-toggle { display: flex; justify-content: center; margin-top: 18px; }
+        .token-chart-btn { display: inline-flex; align-items: center; gap: 10px; padding: 11px 24px; border-radius: 999px; border: 1.5px solid rgba(var(--accent-rgb),0.4); background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; font-size: 0.86rem; font-weight: 700; cursor: pointer; box-shadow: 0 8px 22px rgba(var(--accent-rgb),0.3); transition: all 0.28s var(--ease); }
+        .token-chart-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(var(--accent-rgb),0.42); }
+        .token-chart-btn .tc-chevron { font-size: 0.72rem; transition: transform 0.3s var(--ease); }
+        .token-chart-btn.open .tc-chevron { transform: rotate(180deg); }
+        .token-charts { margin-top: 18px; display: flex; flex-direction: column; gap: 18px; animation: fadeUp 0.45s var(--ease-out) both; }
+        .tc-card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow-sm); }
+        .tc-title { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 900; font-size: 0.98rem; color: var(--ink); margin-bottom: 14px; }
+        .tc-title i { color: var(--green); font-size: 0.9rem; }
+        .tc-canvas { position: relative; height: 260px; }
+        .tc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 900px) { .tc-split { grid-template-columns: 1fr; } }
         .action-btn { padding: 7px 15px; border: 1.5px solid rgba(var(--accent-rgb),0.4); background: rgba(var(--accent-rgb),0.07); color: var(--green-deep); border-radius: 9px; font-size: 0.76rem; font-weight: 700; transition: all 0.22s var(--ease); flex-shrink: 0; }
         .action-btn:hover { background: var(--green); color: #fff; transform: translateY(-1px); }
         .report-type-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.66rem; font-weight: 700; }
@@ -693,6 +706,29 @@
                 <div class="ts-breakdown">
                     <span><i class="fas fa-robot"></i> 活动 <b id="tokenTodayAnalysis">0</b></span>
                     <span><i class="fas fa-file-signature"></i> 报告 <b id="tokenTodayReport">0</b></span>
+                </div>
+            </div>
+        </div>
+        <div class="token-chart-toggle">
+            <button class="token-chart-btn" id="tokenChartBtn" onclick="toggleTokenCharts()">
+                <i class="fas fa-chart-column"></i>
+                <span>查看详细 Token 消耗</span>
+                <i class="fas fa-chevron-down tc-chevron"></i>
+            </button>
+        </div>
+        <div class="token-charts" id="tokenChartsPanel" style="display:none;">
+            <div class="tc-card">
+                <div class="tc-title"><i class="fas fa-chart-bar"></i> Token 消耗总览</div>
+                <div class="tc-canvas"><canvas id="tokenOverviewChart"></canvas></div>
+            </div>
+            <div class="tc-split">
+                <div class="tc-card">
+                    <div class="tc-title"><i class="fas fa-robot"></i> 截图分析 Token</div>
+                    <div class="tc-canvas"><canvas id="tokenAnalysisChart"></canvas></div>
+                </div>
+                <div class="tc-card">
+                    <div class="tc-title"><i class="fas fa-file-signature"></i> 报告输出 Token</div>
+                    <div class="tc-canvas"><canvas id="tokenReportChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -1136,6 +1172,125 @@
                     document.getElementById('tokenTodayReport').textContent = formatTokenCount(t.today_report);
                 }
             } catch (e) { console.warn('加载 Token 统计失败', e); }
+        }
+        /* ============ Token 柱状图 ============ */
+        let tokenChartInstances = [];
+
+        function getThemeTokenColors() {
+            const cs = getComputedStyle(document.documentElement);
+            const light = (cs.getPropertyValue('--green') || '#2f9e44').trim();
+            const deep = (cs.getPropertyValue('--green-deep') || '#1f6f31').trim();
+            return { light: light, deep: deep };
+        }
+
+        function tokenChartOptions(stacked) {
+            const cs = getComputedStyle(document.documentElement);
+            const axisColor = (cs.getPropertyValue('--ink-faint') || '#7d9184').trim();
+            const gridColor = 'rgba(127,145,132,0.15)';
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 700 },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { color: axisColor, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', boxWidth: 8 } },
+                    tooltip: {
+                        backgroundColor: 'rgba(22,48,31,0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#e7f2e7',
+                        padding: 12,
+                        cornerRadius: 10,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(ctx) { return ' ' + ctx.dataset.label + '：' + formatTokenCount(ctx.parsed.y || 0); },
+                            afterBody: function(items) {
+                                let sum = 0;
+                                items.forEach(function(it) { sum += (it.parsed.y || 0); });
+                                return ['', ' 总计：' + formatTokenCount(sum)];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: !!stacked, grid: { display: false }, ticks: { color: axisColor, font: { size: 11 } } },
+                    y: { stacked: !!stacked, grid: { color: gridColor }, ticks: { color: axisColor, font: { size: 11 }, callback: function(v) { return formatTokenCount(v); } } }
+                }
+            };
+        }
+
+        async function toggleTokenCharts() {
+            const panel = document.getElementById('tokenChartsPanel');
+            const btn = document.getElementById('tokenChartBtn');
+            if (!panel) return;
+            const isHidden = panel.style.display === 'none';
+            if (isHidden) {
+                panel.style.display = 'block';
+                if (btn) btn.classList.add('open');
+                tokenChartInstances.forEach(function(c) { try { c.destroy(); } catch(e) {} });
+                tokenChartInstances = [];
+                await renderTokenCharts();
+            } else {
+                panel.style.display = 'none';
+                if (btn) btn.classList.remove('open');
+            }
+        }
+
+        async function renderTokenCharts() {
+            try {
+                const response = await fetch(`/api/user/token-daily/${encodeURIComponent(email)}`);
+                const data = await response.json();
+                if (!data.success || !data.daily) return;
+                const d = data.daily;
+                const colors = getThemeTokenColors();
+                const labels = (d.dates || []).map(function(x) { const p = x.split('-'); return p.length === 3 ? (p[1] + '/' + p[2]) : x; });
+                const analysisTotal = (d.analysis_input || []).map(function(v, i) { return (v || 0) + (d.analysis_output[i] || 0); });
+                const reportTotal = (d.report_input || []).map(function(v, i) { return (v || 0) + (d.report_output[i] || 0); });
+
+                const ov = document.getElementById('tokenOverviewChart');
+                if (ov) {
+                    tokenChartInstances.push(new Chart(ov, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: '截图分析', data: analysisTotal, backgroundColor: colors.light, borderRadius: 5, maxBarThickness: 26 },
+                                { label: '报告输出', data: reportTotal, backgroundColor: colors.deep, borderRadius: 5, maxBarThickness: 26 }
+                            ]
+                        },
+                        options: tokenChartOptions(false)
+                    }));
+                }
+
+                const an = document.getElementById('tokenAnalysisChart');
+                if (an) {
+                    tokenChartInstances.push(new Chart(an, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: '输出', data: d.analysis_output, backgroundColor: colors.deep, maxBarThickness: 34 },
+                                { label: '输入', data: d.analysis_input, backgroundColor: colors.light, borderRadius: { topLeft: 5, topRight: 5 }, maxBarThickness: 34 }
+                            ]
+                        },
+                        options: tokenChartOptions(true)
+                    }));
+                }
+
+                const rp = document.getElementById('tokenReportChart');
+                if (rp) {
+                    tokenChartInstances.push(new Chart(rp, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: '输出', data: d.report_output, backgroundColor: colors.deep, maxBarThickness: 34 },
+                                { label: '输入', data: d.report_input, backgroundColor: colors.light, borderRadius: { topLeft: 5, topRight: 5 }, maxBarThickness: 34 }
+                            ]
+                        },
+                        options: tokenChartOptions(true)
+                    }));
+                }
+            } catch (e) { console.warn('渲染 Token 柱状图失败', e); }
         }
 
         function getFilteredRecords() {
