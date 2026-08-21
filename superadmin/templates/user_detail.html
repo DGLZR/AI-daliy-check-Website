@@ -243,7 +243,8 @@
         .token-chart-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(169,227,75,0.4); }
         .token-chart-btn .tc-chevron { font-size: 0.72rem; transition: transform 0.3s var(--ease); }
         .token-chart-btn.open .tc-chevron { transform: rotate(180deg); }
-        .token-charts { margin-top: 18px; display: flex; flex-direction: column; gap: 16px; }
+        .token-charts { max-height: 0; opacity: 0; transform: translateY(-18px); overflow: hidden; margin-top: 0; display: flex; flex-direction: column; gap: 16px; transition: max-height 0.55s cubic-bezier(0.4,0,0.2,1), opacity 0.45s ease, transform 0.55s cubic-bezier(0.4,0,0.2,1), margin-top 0.55s cubic-bezier(0.4,0,0.2,1); pointer-events: none; }
+        .token-charts.open { max-height: 2400px; opacity: 1; transform: translateY(0); margin-top: 18px; pointer-events: auto; }
         .tc-card { background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
         .tc-title { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 900; font-size: 0.95rem; color: var(--txt); margin-bottom: 14px; }
         .tc-title i { color: var(--lime); font-size: 0.88rem; }
@@ -418,7 +419,7 @@
                         <i class="fas fa-chart-column"></i><span>查看详细 Token 消耗</span><i class="fas fa-chevron-down tc-chevron"></i>
                     </button>
                 </div>
-                <div class="token-charts" id="tokenChartsPanel" style="display:none;">
+                <div class="token-charts" id="tokenChartsPanel">
                     <div class="tc-card">
                         <div class="tc-title"><i class="fas fa-chart-bar"></i> Token 消耗总览</div>
                         <div class="tc-canvas"><canvas id="tokenOverviewChart"></canvas></div>
@@ -825,15 +826,15 @@
             const panel = document.getElementById('tokenChartsPanel');
             const btn = document.getElementById('tokenChartBtn');
             if (!panel) return;
-            const isHidden = panel.style.display === 'none';
-            if (isHidden) {
-                panel.style.display = 'block';
+            const isOpening = !panel.classList.contains('open');
+            if (isOpening) {
+                panel.classList.add('open');
                 if (btn) btn.classList.add('open');
                 tokenChartInstances.forEach(function(c) { try { c.destroy(); } catch(e) {} });
                 tokenChartInstances = [];
                 await renderTokenCharts();
             } else {
-                panel.style.display = 'none';
+                panel.classList.remove('open');
                 if (btn) btn.classList.remove('open');
             }
         }
