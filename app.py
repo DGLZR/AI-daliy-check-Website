@@ -63,6 +63,9 @@ verification_codes = {}
 # 工作类型列表
 WORK_TYPES = ['开发', '沟通', '生活', '学习', '设计', '管理', '文档', '娱乐', '产品', '会议', '运维', '测试', '数据分析', '其他']
 
+# 活动记录表头（含 token 用量三列：输入 / 输出 / 总消耗）
+RECORD_FIELDS = ['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)', '输入token数', '输出token数', '消耗token数']
+
 # 确保目录存在
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -131,7 +134,7 @@ def create_user_folder(email):
     records_file = os.path.join(user_folder, 'records.csv')
     if not os.path.exists(records_file):
         with open(records_file, 'w', newline='', encoding='utf-8') as f:
-            csv.writer(f).writerow(['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)'])
+            csv.writer(f).writerow(RECORD_FIELDS)
     
     # 创建daily_summary.csv
     summary_file = os.path.join(user_folder, 'daily_summary.csv')
@@ -275,9 +278,10 @@ def cleanup_records_file(records_file, max_size_bytes=1*1024*1024):
     # 逐步删除最旧的记录，直到文件大小小于限制
     while len(records) > 0:
         # 先写入测试看看大小
-        temp_content = 'ID,日期,时间,工作类型,工作描述,持续时长(分钟)\n'
+        temp_content = ','.join(RECORD_FIELDS) + '\n'
         for record in records:
-            temp_content += f"{record['ID']},{record['日期']},{record['时间']},{record['工作类型']},{record['工作描述']},{record['持续时长(分钟)']}\n"
+            vals = [str(record.get(f, '0' if 'token' in f else '')) for f in RECORD_FIELDS]
+            temp_content += ','.join(vals) + '\n'
         
         if len(temp_content.encode('utf-8')) <= max_size_bytes:
             break
@@ -285,11 +289,12 @@ def cleanup_records_file(records_file, max_size_bytes=1*1024*1024):
         # 删除最旧的一条记录
         records.pop()
     
-    # 重新写入文件
+    # 重新写入文件（统一为新表头，自动补齐缺失的 token 列）
     with open(records_file, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)'])
+        writer = csv.DictWriter(f, fieldnames=RECORD_FIELDS)
         writer.writeheader()
-        writer.writerows(records)
+        for record in records:
+            writer.writerow({f: record.get(f, '0' if 'token' in f else '') for f in RECORD_FIELDS})
     
     print(f"清理完成，剩余 {len(records)} 条记录")
 
@@ -771,6 +776,77 @@ def logout():
     session.pop('logged_user', None)
     return jsonify({'success': True, 'message': '已登出'})
 
+def calculate_token_stats(email):
+    """统计 token 用量（活动分析 + 报告生成），返回今日 / 累计"""
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    report_folder = os.path.join(user_folder, 'report')
+    today = get_china_time_str('%Y-%m-%d')
+
+    # ---- 活动分析 token（records.csv 的「消耗token数」列）----
+    today_analysis = 0
+    all_analysis = 0
+    if os.path.exists(records_file):
+        with open(records_file, 'r', encoding='utf-8', newline='') as f:
+            for row in csv.DictReader(f):
+                try:
+                    tokens = int(float(row.get('消耗token数', 0) or 0))
+                except (TypeError, ValueError):
+                    tokens = 0
+                all_analysis += tokens
+                if row.get('日期', '') == today:
+                    today_analysis += tokens
+
+    # ---- 报告生成 token（各报告 .md 文件头的消耗/输出 Token）----
+    today_report = 0
+    all_report = 0
+    today_report_output = 0
+    all_report_output = 0
+    if os.path.exists(report_folder):
+        for filename in os.listdir(report_folder):
+            if not filename.endswith('.md'):
+                continue
+            filepath = os.path.join(report_folder, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception:
+                continue
+            total = 0
+            output = 0
+            gen_date = ''
+            for line in content.split('\n'):
+                if '**消耗Token：**' in line:
+                    try:
+                        total = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                    except (TypeError, ValueError):
+                        total = 0
+                if '**输出Token：**' in line:
+                    try:
+                        output = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                    except (TypeError, ValueError):
+                        output = 0
+                if '**生成时间：**' in line:
+                    try:
+                        gen_date = datetime.strptime(line.split('：', 1)[-1].strip().lstrip('*').strip(), '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+                    except Exception:
+                        gen_date = ''
+            all_report += total
+            all_report_output += output
+            if gen_date == today:
+                today_report += total
+                today_report_output += output
+
+    return {
+        'today_analysis': today_analysis,
+        'all_analysis': all_analysis,
+        'today_report': today_report,
+        'all_report': all_report,
+        'today_report_output': today_report_output,
+        'all_report_output': all_report_output,
+        'today_total': today_analysis + today_report,
+        'all_total': all_analysis + all_report
+    }
 @app.route('/api/user/stats/<email>', methods=['GET'])
 def get_user_stats_api(email):
     """获取用户统计数据（需要登录状态）"""
@@ -778,6 +854,7 @@ def get_user_stats_api(email):
         return jsonify({'success': False, 'message': '未登录'}), 401
     
     stats = calculate_user_stats(email)
+    token_stats = calculate_token_stats(email)
     return jsonify({
         'success': True,
         'stats': {
@@ -785,7 +862,8 @@ def get_user_stats_api(email):
             'today_records': stats['today_records'],
             'total_records': stats['total_records'],
             'today_reports': stats['today_reports'],
-            'total_reports': stats['total_reports']
+            'total_reports': stats['total_reports'],
+            'tokens': token_stats
         }
     })
 
@@ -847,29 +925,59 @@ def add_user_record():
     # 清理文件，确保不超过1MB
     cleanup_records_file(records_file)
     
-    # 读取现有记录获取最大ID
+    # 读取现有记录（同时获取最大ID）
+    existing = []
     max_id = 0
-    with open(records_file, 'r', encoding='utf-8') as f:
+    with open(records_file, 'r', encoding='utf-8', newline='') as f:
         reader = csv.DictReader(f)
         for row in reader:
+            existing.append(row)
             try:
                 max_id = max(max_id, int(row['ID']))
-            except ValueError:
+            except (ValueError, KeyError):
                 pass
     
-    # 添加新记录
+    # 解析本次识别消耗的 token 用量（input / output / total）
+    tokens = data.get('tokens') or {}
+    if isinstance(tokens, dict):
+        try:
+            t_input = int(float(tokens.get('input', 0) or 0))
+            t_output = int(float(tokens.get('output', 0) or 0))
+        except (TypeError, ValueError):
+            t_input = 0
+            t_output = 0
+        try:
+            t_total = int(float(tokens.get('total', t_input + t_output) or (t_input + t_output)))
+        except (TypeError, ValueError):
+            t_total = t_input + t_output
+    else:
+        t_input = 0
+        t_output = 0
+        try:
+            t_total = int(float(tokens or 0))
+        except (TypeError, ValueError):
+            t_total = 0
+    
+    # 添加新记录（含 token 用量）
     new_record = {
         'ID': max_id + 1,
         '日期': data.get('date', get_china_time_str('%Y-%m-%d')),
         '时间': data.get('time', get_china_time_str('%H:%M:%S')),
         '工作类型': data.get('work_type', '其他'),
         '工作描述': data.get('description', ''),
-        '持续时长(分钟)': data.get('duration', 0)
+        '持续时长(分钟)': data.get('duration', 0),
+        '输入token数': t_input,
+        '输出token数': t_output,
+        '消耗token数': t_total
     }
+    existing.append(new_record)
     
-    with open(records_file, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=['ID', '日期', '时间', '工作类型', '工作描述', '持续时长(分钟)'])
-        writer.writerow(new_record)
+    # 重写整个文件（统一表头，自动为旧记录补齐 token 列）
+    with open(records_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=RECORD_FIELDS)
+        writer.writeheader()
+        for row in existing:
+            writer.writerow({fld: row.get(fld, '0' if 'token' in fld else '') for fld in RECORD_FIELDS})
     
     return jsonify({'success': True, 'message': '记录添加成功', 'id': new_record['ID']})
 
@@ -949,13 +1057,15 @@ def get_user_stats(email):
         return jsonify({'success': False, 'message': '用户不存在'})
     
     stats = calculate_user_stats(email)
+    token_stats = calculate_token_stats(email)
     return jsonify({
         'success': True,
         'stats': {
             'today_focus_minutes': round(stats['today_focus_minutes'], 1),
             'today_type_minutes': {k: round(v, 1) for k, v in stats['today_type_minutes'].items()},
             'today_reports': stats['today_reports'],
-            'total_reports': stats['total_reports']
+            'total_reports': stats['total_reports'],
+            'tokens': token_stats
         }
     })
 
@@ -1051,12 +1161,35 @@ def upload_report():
     
     filepath = os.path.join(report_folder, filename)
     
-    # 添加元信息到报告内容
+    # 解析报告生成消耗的 token 用量（input / output / total）
+    tokens = data.get('tokens') or {}
+    if isinstance(tokens, dict):
+        try:
+            t_input = int(float(tokens.get('input', 0) or 0))
+        except (TypeError, ValueError):
+            t_input = 0
+        try:
+            t_output = int(float(tokens.get('output', 0) or 0))
+        except (TypeError, ValueError):
+            t_output = 0
+        try:
+            t_total = int(float(tokens.get('total', t_input + t_output) or (t_input + t_output)))
+        except (TypeError, ValueError):
+            t_total = t_input + t_output
+    else:
+        t_input = 0
+        t_output = 0
+        t_total = 0
+    
+    # 添加元信息到报告内容（含 token 用量，供网页端展示与统计）
     meta_content = f"""# {title}
 
 **报告类型：** {report_type}
 **生成时间：** {now.strftime('%Y-%m-%d %H:%M:%S')}
 **用户邮箱：** {email}
+**消耗Token：** {t_total}
+**输入Token：** {t_input}
+**输出Token：** {t_output}
 
 ---
 
@@ -1104,14 +1237,32 @@ def get_user_reports(email):
                     word_count = len(content)
                     date = ''
                     
+                    token_total = 0
+                    token_input = 0
+                    token_output = 0
                     lines = content.split('\n')
                     for line in lines:
                         if line.startswith('# '):
                             title = line[2:].strip()
                         if '**报告类型：**' in line:
-                            report_type = line.split('：')[-1].strip()
+                            report_type = line.split('：', 1)[-1].strip().lstrip('*').strip()
                         if '**生成时间：**' in line:
-                            generate_time = line.split('：')[-1].strip()
+                            generate_time = line.split('：', 1)[-1].strip().lstrip('*').strip()
+                        if '**消耗Token：**' in line:
+                            try:
+                                token_total = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                            except (TypeError, ValueError):
+                                token_total = 0
+                        if '**输入Token：**' in line:
+                            try:
+                                token_input = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                            except (TypeError, ValueError):
+                                token_input = 0
+                        if '**输出Token：**' in line:
+                            try:
+                                token_output = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
+                            except (TypeError, ValueError):
+                                token_output = 0
                     
                     # 格式化时间
                     if generate_time:
@@ -1133,7 +1284,10 @@ def get_user_reports(email):
                         'time': generate_time,
                         'date': date,
                         'word_count': word_count,
-                        'status': '已完成'
+                        'status': '已完成',
+                        'token_total': token_total,
+                        'token_input': token_input,
+                        'token_output': token_output
                     })
                 except:
                     pass
