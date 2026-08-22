@@ -250,6 +250,26 @@
         .empty-hint i { display: block; font-size: 2.2rem; margin-bottom: 12px; opacity: 0.4; }
 
         .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+        /* ============ AI Key 管理 ============ */
+        .key-item { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 15px 17px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 13px; margin-bottom: 11px; transition: all 0.25s var(--ease); animation: rowIn 0.4s var(--ease-out) both; }
+        .key-item:hover { border-color: var(--line-strong); transform: translateX(4px); background: rgba(169,227,75,0.04); }
+        .key-info { flex: 1; min-width: 0; }
+        .key-masked { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; color: var(--txt); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .key-masked i { color: var(--lime); font-size: 0.7rem; }
+        .key-note { font-size: 0.75rem; color: var(--txt-faint); margin-top: 4px; }
+        .key-meta { font-size: 0.7rem; color: var(--txt-faint); margin-top: 5px; display: flex; gap: 14px; flex-wrap: wrap; }
+        .key-meta span { display: inline-flex; align-items: center; gap: 5px; }
+        .key-meta i { font-size: 0.65rem; }
+        .key-used { color: var(--lime); }
+        .key-unused { color: var(--orange); }
+        .key-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        /* 修改 Key 模态框 */
+        .km-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(8,19,13,0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; }
+        .km-box { width: 100%; max-width: 420px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: 18px; padding: 26px 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); animation: riseIn 0.35s var(--ease-out); }
+        .km-head { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 900; font-size: 1.1rem; color: var(--txt); margin-bottom: 22px; }
+        .km-head i { color: var(--lime); }
+        .km-actions { display: flex; gap: 12px; margin-top: 8px; }
 
         /* ============ GitHub 自动更新 ============ */
         .toggle-row { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 14px; cursor: pointer; transition: all 0.25s var(--ease); }
@@ -446,6 +466,7 @@
                 <button class="tab active" onclick="switchTab('users', this)"><i class="fas fa-users"></i> 用户管理</button>
                 <button class="tab" onclick="switchTab('smtp', this)"><i class="fas fa-envelope"></i> SMTP 配置</button>
                 <button class="tab" onclick="switchTab('packages', this)"><i class="fas fa-box-open"></i> 管理安装包</button>
+                <button class="tab" onclick="switchTab('keys', this)"><i class="fas fa-key"></i> 管理Key</button>
                 <button class="tab" onclick="switchTab('monitor', this)"><i class="fas fa-heartbeat"></i> 服务器监测</button>
             </div>
 
@@ -549,6 +570,23 @@
                     <div class="card">
                         <div class="card-title" style="margin-bottom:22px;"><span class="ct-icon"><i class="fas fa-boxes"></i></span>已上传的安装包</div>
                         <div id="packageList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Key 管理 -->
+            <div id="keysPanel" class="panel">
+                <div class="two-col">
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:22px;"><span class="ct-icon"><i class="fas fa-key"></i></span>新增 Key</div>
+                        <div id="keyMessage" class="message"></div>
+                        <div class="form-group"><label>AI Key（软件 AI 分析 / 生成报告时使用）</label><input type="text" id="keyInput" placeholder="例如：e0f5xxxxxxxxxxxxxxxx.xxxx" autocomplete="off"></div>
+                        <div class="form-group"><label>备注</label><input type="text" id="keyNote" placeholder="例如：GLM 主 Key / 备用 Key"></div>
+                        <button class="btn btn-success" onclick="addKey()" style="padding:12px 26px;font-size:0.88rem;"><i class="fas fa-plus"></i> 新增 Key</button>
+                    </div>
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:22px;"><span class="ct-icon"><i class="fas fa-key"></i></span>Key 列表</div>
+                        <div id="keyList"></div>
                     </div>
                 </div>
             </div>
@@ -666,8 +704,21 @@
         </div>
     </div>
 
-    <script>
-        /* ============ 粒子星空 ============ */
+
+    <!-- ============ 修改 Key 模态框 ============ -->
+    <div id="keyEditModal" class="km-overlay" style="display:none;">
+        <div class="km-box">
+            <div class="km-head"><i class="fas fa-key"></i> 修改 Key</div>
+            <div class="form-group"><label>AI Key</label><input type="text" id="editKeyInput" autocomplete="off"></div>
+            <div class="form-group"><label>备注</label><input type="text" id="editKeyNote" placeholder="例如：GLM 主 Key"></div>
+            <div class="km-actions">
+                <button class="btn btn-success" onclick="saveKeyEdit()"><i class="fas fa-check"></i> 保存</button>
+                <button class="btn btn-danger" onclick="closeKeyEdit()"><i class="fas fa-times"></i> 取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>        /* ============ 粒子星空 ============ */
         (function initParticles() {
             const canvas = document.getElementById('particleCanvas');
             const ctx = canvas.getContext('2d');
@@ -765,7 +816,7 @@
         function enterDashboard() {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('adminPage').classList.add('active');
-            loadUsers(); loadSMTPConfig(); loadPackages(); loadAutoUpdateSettings();
+            loadUsers(); loadSMTPConfig(); loadPackages(); loadAutoUpdateSettings(); loadKeys();
         }
 
         async function adminLogout() { await fetch('/api/admin/logout', {method:'POST'}); location.reload(); }
@@ -1007,6 +1058,98 @@
             el.style.display = show ? 'block' : 'none';
             if (show) updateNotePreview();
             if (btn) btn.textContent = show ? '收起预览' : '预览效果';
+        }
+
+        /* ============ AI Key 管理 ============ */
+        function maskKey(k) {
+            if (!k) return '（空）';
+            if (k.length <= 8) return '****';
+            return k.slice(0, 4) + '••••••••' + k.slice(-4);
+        }
+
+        async function loadKeys() {
+            try {
+                const res = await fetch('/api/admin/keys');
+                const data = await res.json();
+                if (data.success) renderKeys(data.keys);
+            } catch (e) { console.warn('加载 Key 失败', e); }
+        }
+
+        function renderKeys(keys) {
+            const container = document.getElementById('keyList');
+            if (!container) return;
+            if (!keys || keys.length === 0) {
+                container.innerHTML = '<div class="empty-hint"><i class="fas fa-key"></i>暂无 Key，先新增一个吧</div>';
+                return;
+            }
+            container.innerHTML = keys.map((k, i) => `
+                <div class="key-item" style="animation-delay:${i * 0.05}s">
+                    <div class="key-info">
+                        <div class="key-masked"><i class="fas fa-key"></i>${maskKey(k.key)}</div>
+                        ${k.note ? `<div class="key-note"><i class="fas fa-tag"></i> ${k.note}</div>` : ''}
+                        <div class="key-meta">
+                            <span><i class="far fa-calendar-plus"></i>创建 ${k.created || '--'}</span>
+                            ${k.last_used ? `<span class="key-used"><i class="far fa-clock"></i>最近使用 ${k.last_used}</span>` : '<span class="key-unused"><i class="fas fa-hourglass-start"></i>从未使用</span>'}
+                        </div>
+                    </div>
+                    <div class="key-actions">
+                        <button class="btn btn-info" onclick="openEditKey(${k.id})"><i class="fas fa-pen"></i>修改</button>
+                        <button class="btn btn-danger" onclick="deleteKey(${k.id})"><i class="fas fa-trash"></i>删除</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        async function addKey() {
+            const key = document.getElementById('keyInput').value.trim();
+            const note = document.getElementById('keyNote').value.trim();
+            const msg = document.getElementById('keyMessage');
+            function show(text, ok) { msg.textContent = text; msg.className = 'message ' + (ok ? 'success' : 'error'); setTimeout(() => msg.className = 'message', 3000); }
+            if (!key) return show('请输入 Key', false);
+            try {
+                const res = await fetch('/api/admin/keys', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key, note})});
+                const data = await res.json();
+                show(data.message || (data.success ? '新增成功' : '新增失败'), data.success);
+                if (data.success) { document.getElementById('keyInput').value = ''; document.getElementById('keyNote').value = ''; loadKeys(); }
+            } catch (e) { show('新增失败：网络错误', false); }
+        }
+
+        let editingKeyId = null;
+        function openEditKey(id) {
+            fetch('/api/admin/keys').then(r => r.json()).then(data => {
+                if (!data.success) return;
+                const k = data.keys.find(x => x.id === id);
+                if (!k) return;
+                editingKeyId = id;
+                document.getElementById('editKeyInput').value = k.key || '';
+                document.getElementById('editKeyNote').value = k.note || '';
+                document.getElementById('keyEditModal').style.display = 'flex';
+            });
+        }
+        function closeKeyEdit() { document.getElementById('keyEditModal').style.display = 'none'; editingKeyId = null; }
+
+        async function saveKeyEdit() {
+            const key = document.getElementById('editKeyInput').value.trim();
+            const note = document.getElementById('editKeyNote').value.trim();
+            const msg = document.getElementById('keyMessage');
+            function show(text, ok) { msg.textContent = text; msg.className = 'message ' + (ok ? 'success' : 'error'); setTimeout(() => msg.className = 'message', 3000); }
+            if (!key) return show('Key 不能为空', false);
+            try {
+                const res = await fetch(`/api/admin/keys/${editingKeyId}/update`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key, note})});
+                const data = await res.json();
+                show(data.message || (data.success ? '修改成功' : '修改失败'), data.success);
+                if (data.success) { closeKeyEdit(); loadKeys(); }
+            } catch (e) { show('修改失败：网络错误', false); }
+        }
+
+        async function deleteKey(id) {
+            if (!confirm('确定删除该 Key 吗？')) return;
+            const res = await fetch(`/api/admin/keys/${id}/delete`, {method:'POST'});
+            const data = await res.json();
+            const msg = document.getElementById('keyMessage');
+            msg.textContent = data.message || '删除成功';
+            msg.className = 'message ' + (data.success ? 'success' : 'error');
+            setTimeout(() => msg.className = 'message', 3000);
+            if (data.success) loadKeys();
         }
 
         /* ============ GitHub 自动更新 ============ */

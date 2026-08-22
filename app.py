@@ -52,6 +52,7 @@ DETAIL_CSV = os.path.join(DATA_DIR, 'detail_person_data.csv')
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 FILES_INFO_PATH = os.path.join(BASE_DIR, 'files_info.json')
 VERSIONS_FILE = os.path.join(BASE_DIR, 'versions.json')
+AI_KEYS_FILE = os.path.join(BASE_DIR, 'ai_keys.json')
 
 # 管理员账号
 ADMIN_USERNAME = 'frog'
@@ -2193,6 +2194,100 @@ def admin_auto_update_status():
         'last_processed_tag': s.get('last_processed_tag'),
     })
 
+
+
+# ============ AI Key 管理（软件 AI 分析用 key 池） ============
+def load_ai_keys():
+    """读取 AI key 列表"""
+    if os.path.exists(AI_KEYS_FILE):
+        try:
+            with open(AI_KEYS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data.get('keys', [])
+        except Exception:
+            pass
+    return []
+
+def save_ai_keys(keys):
+    """保存 AI key 列表"""
+    with open(AI_KEYS_FILE, 'w', encoding='utf-8') as f:
+        json.dump({'keys': keys}, f, ensure_ascii=False, indent=2)
+
+def get_next_key_id(keys):
+    return max([k.get('id', 0) for k in keys], default=0) + 1
+
+@app.route('/api/admin/keys', methods=['GET'])
+def admin_get_keys():
+    """获取 AI key 列表（管理员）"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    return jsonify({'success': True, 'keys': load_ai_keys()})
+
+@app.route('/api/admin/keys', methods=['POST'])
+def admin_add_key():
+    """新增 AI key"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json or {}
+    key = str(data.get('key', '')).strip()
+    note = str(data.get('note', '')).strip()
+    if not key:
+        return jsonify({'success': False, 'message': '请输入 Key'})
+    keys = load_ai_keys()
+    if any(k.get('key') == key for k in keys):
+        return jsonify({'success': False, 'message': '该 Key 已存在'})
+    keys.append({
+        'id': get_next_key_id(keys),
+        'key': key,
+        'note': note,
+        'created': get_china_time_str('%Y-%m-%d %H:%M:%S'),
+        'last_used': None
+    })
+    save_ai_keys(keys)
+    return jsonify({'success': True, 'message': '新增成功'})
+
+@app.route('/api/admin/keys/<int:key_id>/update', methods=['POST'])
+def admin_update_key(key_id):
+    """修改 AI key（key 或备注）"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    data = request.json or {}
+    keys = load_ai_keys()
+    target = next((k for k in keys if k.get('id') == key_id), None)
+    if not target:
+        return jsonify({'success': False, 'message': 'Key 不存在'})
+    new_key = str(data.get('key', '')).strip()
+    if new_key:
+        if any(k.get('key') == new_key and k.get('id') != key_id for k in keys):
+            return jsonify({'success': False, 'message': '该 Key 已存在'})
+        target['key'] = new_key
+    if 'note' in data:
+        target['note'] = str(data.get('note', '')).strip()
+    save_ai_keys(keys)
+    return jsonify({'success': True, 'message': '修改成功'})
+
+@app.route('/api/admin/keys/<int:key_id>/delete', methods=['POST'])
+def admin_delete_key(key_id):
+    """删除 AI key"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    keys = [k for k in load_ai_keys() if k.get('id') != key_id]
+    save_ai_keys(keys)
+    return jsonify({'success': True, 'message': '删除成功'})
+
+@app.route('/api/ai/key', methods=['GET'])
+def get_ai_key():
+    """软件端获取 AI key（LRU：返回最久未使用的 key，并更新其最近使用时间）"""
+    keys = load_ai_keys()
+    if not keys:
+        return jsonify({'success': False, 'message': '暂无可用 Key，请在管理后台添加'})
+    now = get_china_time_str('%Y-%m-%d %H:%M:%S')
+    # 优先返回从未使用过的 key，否则取最近使用时间最旧的
+    unused = [k for k in keys if not k.get('last_used')]
+    target = unused[0] if unused else min(keys, key=lambda k: k.get('last_used') or '')
+    target['last_used'] = now
+    save_ai_keys(keys)
+    return jsonify({'success': True, 'key': target['key'], 'last_used': now})
 
 
 # ============ 版本历史接口 ============
