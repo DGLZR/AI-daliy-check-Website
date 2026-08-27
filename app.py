@@ -2275,6 +2275,52 @@ def admin_delete_key(key_id):
     save_ai_keys(keys)
     return jsonify({'success': True, 'message': '删除成功'})
 
+@app.route('/api/admin/keys/<int:key_id>/test', methods=['POST'])
+def admin_test_key(key_id):
+    """测试 AI key 是否可用（调用 GLM），可用则更新最近使用时间"""
+    if not session.get('admin_logged_in'):
+        return jsonify({'success': False}), 401
+    keys = load_ai_keys()
+    target = next((k for k in keys if k.get('id') == key_id), None)
+    if not target:
+        return jsonify({'success': False, 'message': 'Key 不存在'})
+    key = target.get('key', '')
+    if not key:
+        return jsonify({'success': False, 'message': 'Key 为空'})
+    if not REQUESTS_AVAILABLE:
+        return jsonify({'success': False, 'message': '服务器未安装 requests 库'})
+    # 用该 key 调用 GLM 测试连接
+    try:
+        resp = requests.post(
+            'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+            headers={'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'},
+            json={'model': 'glm-4.7-flash', 'messages': [{'role': 'user', 'content': '你好'}], 'stream': False},
+            timeout=30
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('choices'):
+                now = get_china_time_str('%Y-%m-%d %H:%M:%S')
+                target['last_used'] = now
+                save_ai_keys(keys)
+                return jsonify({'success': True, 'message': 'Key 测试通过，可正常使用', 'last_used': now})
+            return jsonify({'success': False, 'message': 'GLM 返回格式异常'})
+        # 401/403 表示认证失败，Key 无效
+        if resp.status_code in (401, 403):
+            try:
+                err = resp.json().get('error', {}).get('message', resp.text)
+            except Exception:
+                err = resp.text or ''
+            return jsonify({'success': False, 'message': f'Key 无效（HTTP {resp.status_code}）：{err}'})
+        # 其他（429 限流 / 5xx）：Key 已通过认证，仅服务繁忙，视为可用并更新使用时间
+        now = get_china_time_str('%Y-%m-%d %H:%M:%S')
+        target['last_used'] = now
+        save_ai_keys(keys)
+        return jsonify({'success': True, 'message': f'Key 有效，但 GLM 服务当前繁忙（HTTP {resp.status_code}），已更新使用时间', 'last_used': now})
+    except requests.exceptions.Timeout:
+        return jsonify({'success': False, 'message': '测试超时，请稍后重试'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'测试失败：{e}'})
 @app.route('/api/ai/key', methods=['GET'])
 def get_ai_key():
     """软件端获取 AI key（LRU：返回最久未使用的 key，并更新其最近使用时间）"""

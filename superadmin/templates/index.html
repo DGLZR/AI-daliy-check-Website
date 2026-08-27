@@ -1093,6 +1093,7 @@
                         </div>
                     </div>
                     <div class="key-actions">
+                        <button class="btn btn-success" onclick="testKey(${k.id}, this)"><i class="fas fa-plug"></i>测试</button>
                         <button class="btn btn-info" onclick="openEditKey(${k.id})"><i class="fas fa-pen"></i>修改</button>
                         <button class="btn btn-danger" onclick="deleteKey(${k.id})"><i class="fas fa-trash"></i>删除</button>
                     </div>
@@ -1150,6 +1151,22 @@
             msg.className = 'message ' + (data.success ? 'success' : 'error');
             setTimeout(() => msg.className = 'message', 3000);
             if (data.success) loadKeys();
+        }
+        async function testKey(id, btn) {
+            const msg = document.getElementById('keyMessage');
+            function show(text, ok) { msg.textContent = text; msg.className = 'message ' + (ok ? 'success' : 'error'); setTimeout(() => msg.className = 'message', 5000); }
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner spin"></i> 测试中…'; }
+            try {
+                const res = await fetch(`/api/admin/keys/${id}/test`, {method: 'POST'});
+                const data = await res.json();
+                show(data.message || (data.success ? 'Key 测试通过' : 'Key 测试失败'), data.success);
+                // 测试成功后刷新列表（同步更新最近使用时间显示）
+                if (data.success) loadKeys();
+            } catch (e) {
+                show('测试失败：网络错误', false);
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plug"></i>测试'; }
+            }
         }
 
         /* ============ GitHub 自动更新 ============ */

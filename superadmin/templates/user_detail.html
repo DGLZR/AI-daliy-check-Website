@@ -6,6 +6,7 @@
     <title>用户详情 - {{ user['邮箱'] }}</title>
     <link rel="icon" href="/favicon.jpg" type="image/jpeg">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -257,6 +258,14 @@
         .action-btn.copy:hover { background: var(--blue); color: var(--bg1); }
         .action-btn.delete { border-color: rgba(255,107,107,0.35); background: rgba(255,107,107,0.07); color: var(--red); }
         .action-btn.delete:hover { background: var(--red); color: #fff; }
+        .action-btn.view { margin-left: -3px; }
+        .dl-wrap { position: relative; display: inline-flex; }
+        .action-btn.dl { display: inline-flex; align-items: center; gap: 6px; }
+        .dl-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 150px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 16px 44px rgba(0,0,0,0.5); padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all 0.22s var(--ease); z-index: 60; }
+        .dl-wrap:hover .dl-menu, .dl-wrap:focus-within .dl-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+        .dl-menu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 13px; background: transparent; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.18s; text-align: left; font-family: var(--font-body); color: var(--txt); }
+        .dl-menu button:hover { background: rgba(169,227,75,0.1); }
+        .dl-menu .dl-pdf { color: #ff6b6b; } .dl-menu .dl-word { color: #4dabf7; }
         .report-type-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.64rem; font-weight: 700; }
         .report-type-tag.日报 { background: rgba(169,227,75,0.12); color: var(--lime); }
         .report-type-tag.周报 { background: rgba(77,171,247,0.12); color: var(--blue); }
@@ -1004,9 +1013,16 @@
                         <div class="report-meta"><span><i class="far fa-calendar"></i> ${r.time || r.date}</span><span><i class="fas fa-pen-nib"></i> ${r.word_count || 0} 字</span><span class="report-token" title="输入 Token：${r.token_input || 0}&#10;输出 Token：${r.token_output || 0}&#10;总消耗：${r.token_total || 0}"><i class="fas fa-coins"></i> ${formatTokenCount(r.token_total || 0)}</span></div>
                     </div>
                     <div class="report-actions">
-                        <button class="action-btn" onclick="viewReport('${r.filename}')"><i class="fas fa-eye"></i> 查看</button>
+                        <button class="action-btn view" onclick="viewReport('${r.filename}')"><i class="fas fa-eye"></i> 查看</button>
                         <button class="action-btn copy" onclick="copyReport('${r.filename}')"><i class="fas fa-copy"></i> 复制</button>
                         <button class="action-btn delete" onclick="deleteReport('${r.filename}')"><i class="fas fa-trash"></i></button>
+                        <div class="dl-wrap">
+                            <button class="action-btn dl"><i class="fas fa-download"></i> 下载 <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                            <div class="dl-menu">
+                                <button class="dl-pdf" onclick="downloadReport('${r.filename}','pdf')"><i class="fas fa-file-pdf"></i> 下载 PDF</button>
+                                <button class="dl-word" onclick="downloadReport('${r.filename}','word')"><i class="fas fa-file-word"></i> 下载 Word</button>
+                            </div>
+                        </div>
                     </div>
                 </div>`).join('');
             pagination.innerHTML = totalPages > 1 ? buildPagination(totalPages, currentReportPage, 'goToReportPage', filteredReports.length) : '';
@@ -1028,6 +1044,28 @@
             }
         }
 
+
+        async function downloadReport(filename, format) {
+            try {
+                const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`);
+                const data = await response.json();
+                if (!data.success) { alert('获取报告失败'); return; }
+                const title = (data.title || filename).replace(/[\\\/:*?"<>|]/g, '_');
+                const body = data.content || '';
+                if (format === 'pdf') {
+                    const el = document.createElement('div');
+                    el.style.cssText = "font-family:'Noto Sans SC',sans-serif;line-height:1.9;color:#16301f;padding:24px;max-width:720px;background:#fff;";
+                    el.innerHTML = body;
+                    document.body.appendChild(el);
+                    html2pdf().set({margin:[12,12,12,12],filename:title+'.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().then(function(){ document.body.removeChild(el); }).catch(function(){ if(el.parentNode) document.body.removeChild(el); });
+                } else {
+                    const docHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>"+title+"</title><style>body{font-family:'Noto Sans SC',sans-serif;line-height:1.9;color:#16301f;} table{border-collapse:collapse;} th,td{border:1px solid #999;padding:6px;} h1,h2,h3{color:#1f6f31;} code{background:#f0f0f0;padding:2px 5px;border-radius:3px;}</style></head><body>"+body+"</body></html>";
+                    const blob = new Blob(['\ufeff'+docHtml], {type:'application/msword'});
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = title+'.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+                }
+            } catch (e) { alert('下载失败：'+e.message); }
+        }
         async function copyReport(filename) {
             const response = await fetch(`/api/user/report/${encodeURIComponent(email)}/${encodeURIComponent(filename)}`);
             const data = await response.json();
