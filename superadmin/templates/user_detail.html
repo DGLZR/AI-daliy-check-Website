@@ -265,7 +265,7 @@
         .dl-wrap:hover .dl-menu, .dl-wrap:focus-within .dl-menu { opacity: 1; visibility: visible; transform: translateY(0); }
         .dl-menu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 13px; background: transparent; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.18s; text-align: left; font-family: var(--font-body); color: var(--txt); }
         .dl-menu button:hover { background: rgba(169,227,75,0.1); }
-        .dl-menu .dl-pdf { color: #ff6b6b; } .dl-menu .dl-word { color: #4dabf7; }
+        .dl-menu .dl-pdf { color: #ff6b6b; } .dl-menu .dl-word { color: #4dabf7; } .dl-menu .dl-md { color: var(--lime); }
         .report-type-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.64rem; font-weight: 700; }
         .report-type-tag.日报 { background: rgba(169,227,75,0.12); color: var(--lime); }
         .report-type-tag.周报 { background: rgba(77,171,247,0.12); color: var(--blue); }
@@ -1021,6 +1021,7 @@
                             <div class="dl-menu">
                                 <button class="dl-pdf" onclick="downloadReport('${r.filename}','pdf')"><i class="fas fa-file-pdf"></i> 下载 PDF</button>
                                 <button class="dl-word" onclick="downloadReport('${r.filename}','word')"><i class="fas fa-file-word"></i> 下载 Word</button>
+                                <button class="dl-md" onclick="downloadReport('${r.filename}','md')"><i class="fab fa-markdown"></i> 下载 Markdown</button>
                             </div>
                         </div>
                     </div>
@@ -1063,6 +1064,11 @@
                     const blob = new Blob(['\ufeff'+docHtml], {type:'application/msword'});
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = title+'.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+                } else if (format === 'md') {
+                    const raw = data.raw || '';
+                    const blob = new Blob([raw], {type:'text/markdown;charset=utf-8'});
+                    const a2 = document.createElement('a'); a2.href = URL.createObjectURL(blob); a2.download = title+'.md'; document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+                    setTimeout(function(){ URL.revokeObjectURL(a2.href); }, 2000);
                 }
             } catch (e) { alert('下载失败：'+e.message); }
         }
