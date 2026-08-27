@@ -1539,7 +1539,7 @@
                     el.innerHTML = body;
                     document.body.appendChild(el);
                     html2pdf().set({margin:[12,12,12,12],filename:title+'.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().then(function(){ document.body.removeChild(el); }).catch(function(){ if(el.parentNode) document.body.removeChild(el); });
-                } else {
+                } else if (format === 'word') {
                     const docHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>"+title+"</title><style>body{font-family:'Noto Sans SC',sans-serif;line-height:1.9;color:#16301f;} table{border-collapse:collapse;} th,td{border:1px solid #999;padding:6px;} h1,h2,h3{color:#1f6f31;} code{background:#f0f0f0;padding:2px 5px;border-radius:3px;}</style></head><body>"+body+"</body></html>";
                     const blob = new Blob(['\ufeff'+docHtml], {type:'application/msword'});
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = title+'.doc'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
