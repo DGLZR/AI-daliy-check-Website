@@ -1323,6 +1323,7 @@ def get_user_reports(email):
                     token_total = 0
                     token_input = 0
                     token_output = 0
+                    source = ''
                     lines = content.split('\n')
                     for line in lines:
                         if line.startswith('# '):
@@ -1346,6 +1347,8 @@ def get_user_reports(email):
                                 token_output = int(float(line.split('：', 1)[-1].strip().lstrip('*').strip() or 0))
                             except (TypeError, ValueError):
                                 token_output = 0
+                        if '**来源：**' in line:
+                            source = line.split('：', 1)[-1].strip().lstrip('*').strip()
                     
                     # 原始生成时间（用于排序）
                     sort_time = generate_time
@@ -1374,7 +1377,8 @@ def get_user_reports(email):
                         'token_total': token_total,
                         'token_input': token_input,
                         'token_output': token_output,
-                        'sort_time': sort_time
+                        'sort_time': sort_time,
+                        'source': source
                     })
                 except:
                     pass
@@ -2194,6 +2198,240 @@ def admin_auto_update_status():
         'last_processed_tag': s.get('last_processed_tag'),
     })
 
+
+
+# ============ 网页端报告生成（AI） ============
+REPORT_TEMPLATES_FILE = os.path.join(BASE_DIR, 'report_templates.json')
+
+def load_report_templates():
+    """读取报告模板列表"""
+    if os.path.exists(REPORT_TEMPLATES_FILE):
+        try:
+            with open(REPORT_TEMPLATES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f).get('templates', [])
+        except Exception:
+            pass
+    return []
+
+def get_user_records_range(email, start_date, end_date):
+    """获取用户指定日期范围内的工作记录"""
+    user_folder = get_user_folder(email)
+    records_file = os.path.join(user_folder, 'records.csv')
+    records = []
+    if os.path.exists(records_file):
+        with open(records_file, 'r', encoding='utf-8', newline='') as f:
+            for row in csv.DictReader(f):
+                d = row.get('日期', '')
+                if start_date <= d <= end_date:
+                    records.append(row)
+    return records
+
+def build_web_report_prompt(template_prompt, records, start_date, end_date, report_type, custom_instruction=''):
+    """构建报告生成提示词（与软件端逻辑一致）"""
+    from itertools import groupby
+    from collections import Counter
+    records_text = ''
+    if records:
+        sorted_records = sorted(records, key=lambda r: r.get('日期', ''))
+        for date, group in groupby(sorted_records, key=lambda r: r.get('日期', '')):
+            records_text += f"\n### {date}\n"
+            for rec in list(group)[:12]:
+                t = rec.get('时间', '')[:5]
+                wt = rec.get('工作类型', '其他')
+                desc = rec.get('工作描述', '')
+                records_text += f"- [{t}] [{wt}] {desc}\n"
+    else:
+        records_text = '暂无工作记录\n'
+    type_minutes = {t: 0 for t in WORK_TYPES}
+    total_minutes = 0
+    for rec in records:
+        try:
+            m = float(rec.get('持续时长(分钟)', 0) or 0)
+        except (TypeError, ValueError):
+            m = 0
+        total_minutes += m
+        wt = rec.get('工作类型', '其他')
+        if wt in type_minutes:
+            type_minutes[wt] += m
+    type_stats = ''
+    for t in WORK_TYPES:
+        if type_minutes[t] > 0:
+            type_stats += f"- {t}: {type_minutes[t]/60:.1f}小时\n"
+    if not type_stats:
+        type_stats = '暂无统计数据\n'
+    date_counts = Counter(rec.get('日期', '') for rec in records)
+    daily_stats = ''
+    for d in sorted(date_counts.keys()):
+        daily_stats += f"- {d}: {date_counts[d]}条记录\n"
+    if not daily_stats:
+        daily_stats = '暂无记录\n'
+    total_hours = round(total_minutes / 60, 2)
+    main_work = max(type_minutes, key=type_minutes.get) if any(type_minutes.values()) else '暂无'
+    date_count = len(date_counts)
+    prompt = template_prompt
+    prompt = prompt.replace('{record_count}', str(len(records)))
+    prompt = prompt.replace('{duration_hours}', f'{total_hours}小时')
+    prompt = prompt.replace('{main_work}', main_work)
+    prompt = prompt.replace('{records}', records_text)
+    custom_part = ''
+    if custom_instruction:
+        custom_part = f"\n## 用户自定义要求\n{custom_instruction}\n"
+    full_prompt = (
+        f"你是一个专业的工作报告撰写助手。请根据以下信息生成一份{report_type}。\n\n"
+        f"## 报告模板结构\n{prompt}\n\n"
+        f"## 工作记录数据\n日期范围: {start_date} 至 {end_date}\n"
+        f"总天数: {date_count}天\n记录条数: {len(records)}条\n总工作时长: {total_hours}小时\n主要工作类型: {main_work}\n\n"
+        f"### 每日记录统计\n{daily_stats}\n\n"
+        f"### 详细工作记录（按日期分组）\n{records_text}\n\n"
+        f"### 工作类型统计\n{type_stats}\n"
+        f"{custom_part}\n"
+        "## 重要要求\n"
+        "1. 请严格按照模板结构生成报告\n"
+        f"2. 根据实际工作记录填充内容，注意记录分布在{date_count}天内\n"
+        "3. 如果是周报或月报，请按日期或周汇总工作内容\n"
+        "4. 语言简洁专业，适合工作汇报\n"
+        "5. 如果某些部分没有对应数据，请合理补充说明\n"
+        "6. 请直接输出报告内容（Markdown 格式），不要输出其他说明文字\n\n"
+        "请开始生成报告："
+    )
+    return full_prompt
+
+def pick_lru_ai_key():
+    """LRU 选取 AI key 并更新最近使用时间，返回 key 或 None"""
+    keys = load_ai_keys()
+    if not keys:
+        return None
+    unused = [k for k in keys if not k.get('last_used')]
+    target = unused[0] if unused else min(keys, key=lambda k: k.get('last_used') or '')
+    target['last_used'] = get_china_time_str('%Y-%m-%d %H:%M:%S')
+    save_ai_keys(keys)
+    return target.get('key')
+
+def save_generated_report(email, title, content, report_type, tokens):
+    """把网页端生成的报告保存到服务器（格式与软件上传一致），并更新报告计数"""
+    user_folder = get_user_folder(email)
+    report_folder = os.path.join(user_folder, 'report')
+    os.makedirs(report_folder, exist_ok=True)
+    now = get_china_time()
+    safe_title = ''.join(c for c in title if c.isalnum() or c in ('_', '-', ' ')).strip()
+    filename = f"{safe_title}_{now.strftime('%Y%m%d_%H%M%S')}.md"
+    filepath = os.path.join(report_folder, filename)
+    t_input = int(tokens.get('input', 0) or 0)
+    t_output = int(tokens.get('output', 0) or 0)
+    t_total = int(tokens.get('total', t_input + t_output) or (t_input + t_output))
+    meta_content = (
+        f"# {title}\n\n"
+        f"**报告类型：** {report_type}\n"
+        f"**生成时间：** {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"**用户邮箱：** {email}\n"
+        f"**消耗Token：** {t_total}\n"
+        f"**输入Token：** {t_input}\n"
+        f"**输出Token：** {t_output}\n"
+        "**来源：** 网页端生成\n\n---\n\n"
+        f"{content}\n"
+    )
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(meta_content)
+    # 更新报告计数
+    detail_data = read_detail_data()
+    for d in detail_data:
+        if d['邮箱'] == email:
+            d['今日生成报告数'] = str(int(d.get('今日生成报告数', '0')) + 1)
+            d['总共生成报告数'] = str(int(d.get('总共生成报告数', '0')) + 1)
+            break
+    write_detail_data(detail_data)
+    return filename
+
+@app.route('/api/user/report-templates', methods=['GET'])
+def get_report_templates():
+    """返回报告模板列表（不含完整 prompt，减少体积）"""
+    templates = load_report_templates()
+    simple = [{'index': i, 'name': t.get('name', ''), 'intro': t.get('intro', ''), 'desc': t.get('desc', ''), 'is_cloud': t.get('is_cloud', False)} for i, t in enumerate(templates)]
+    return jsonify({'success': True, 'templates': simple})
+
+@app.route('/api/user/generate-report', methods=['POST'])
+def generate_report_web():
+    """网页端流式生成报告（SSE）"""
+    from flask import Response, stream_with_context
+    data = request.json or {}
+    email = str(data.get('email', '')).strip()
+    report_type = str(data.get('type', '日报')).strip()
+    start_date = str(data.get('start_date', '')).strip()
+    end_date = str(data.get('end_date', '')).strip() or start_date
+    template_index = data.get('template_index', 0)
+    custom_instruction = str(data.get('custom_instruction', '')).strip()
+    title = str(data.get('title', '')).strip()
+    if not email or not find_user(email):
+        return jsonify({'success': False, 'message': '用户不存在'})
+    if not start_date:
+        return jsonify({'success': False, 'message': '请选择日期范围'})
+    templates = load_report_templates()
+    if not templates:
+        return jsonify({'success': False, 'message': '暂无报告模板'})
+    try:
+        idx = int(template_index)
+    except (TypeError, ValueError):
+        idx = 0
+    if idx < 0 or idx >= len(templates):
+        idx = 0
+    template = templates[idx]
+    template_prompt = template.get('prompt', '')
+    template_name = template.get('name', '默认模板')
+    api_key = pick_lru_ai_key()
+    if not api_key:
+        return jsonify({'success': False, 'message': '暂无可用 AI Key，请在管理后台添加'})
+    records = get_user_records_range(email, start_date, end_date)
+    full_prompt = build_web_report_prompt(template_prompt, records, start_date, end_date, report_type, custom_instruction)
+    if not title:
+        title = f"工作{report_type} — {start_date} 至 {end_date}"
+    def event_stream():
+        import requests as req
+        full_content = ''
+        usage = {'input': 0, 'output': 0, 'total': 0}
+        try:
+            resp = req.post(
+                'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+                json={'model': 'glm-4.7-flash', 'messages': [{'role': 'user', 'content': full_prompt}], 'stream': True},
+                stream=True,
+                timeout=180
+            )
+            if resp.status_code != 200:
+                try:
+                    err = resp.json().get('error', {}).get('message', resp.text)
+                except Exception:
+                    err = resp.text or ''
+                yield 'data: ' + json.dumps({'type': 'error', 'message': f'GLM 调用失败（HTTP {resp.status_code}）：{err}'}, ensure_ascii=False) + '\n\n'
+                return
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line or not line.startswith('data:'):
+                    continue
+                payload = line[5:].strip()
+                if payload == '[DONE]':
+                    break
+                try:
+                    chunk = json.loads(payload)
+                except Exception:
+                    continue
+                choices = chunk.get('choices') or []
+                if choices:
+                    delta = choices[0].get('delta') or {}
+                    c = delta.get('content')
+                    if c:
+                        full_content += c
+                        yield 'data: ' + json.dumps({'type': 'chunk', 'content': c}, ensure_ascii=False) + '\n\n'
+                u = chunk.get('usage')
+                if u:
+                    usage['input'] = int(u.get('prompt_tokens', 0) or 0)
+                    usage['output'] = int(u.get('completion_tokens', 0) or 0)
+                    usage['total'] = int(u.get('total_tokens', usage['input'] + usage['output']) or (usage['input'] + usage['output']))
+            filename = save_generated_report(email, title, full_content, report_type, usage)
+            yield 'data: ' + json.dumps({'type': 'done', 'title': title, 'filename': filename, 'template': template_name, 'tokens': usage, 'word_count': len(full_content)}, ensure_ascii=False) + '\n\n'
+        except req.exceptions.Timeout:
+            yield 'data: ' + json.dumps({'type': 'error', 'message': '生成超时，请稍后重试'}, ensure_ascii=False) + '\n\n'
+        except Exception as e:
+            yield 'data: ' + json.dumps({'type': 'error', 'message': f'生成失败：{e}'}, ensure_ascii=False) + '\n\n'
+    return Response(stream_with_context(event_stream()), mimetype='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
 
 # ============ AI Key 管理（软件 AI 分析用 key 池） ============

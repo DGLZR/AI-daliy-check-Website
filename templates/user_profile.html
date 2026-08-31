@@ -391,7 +391,8 @@
         .type-group .type-btn:not(:first-child):not(:last-child) { border-left: none; }
         .type-group .type-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
         .type-group .type-btn:hover:not(.active) { color: var(--green-deep); border-color: var(--green); }
-        .report-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 13px; margin-bottom: 10px; transition: all 0.25s var(--ease); background: var(--surface); }
+        .report-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 15px; border: 1px solid var(--line); border-radius: 13px; margin-bottom: 10px; transition: all 0.25s var(--ease); background: var(--surface); position: relative; }
+        .report-item:hover { z-index: 999; }
         .report-item:hover { border-color: rgba(var(--accent-rgb),0.4); transform: translateX(4px); box-shadow: var(--shadow-sm); background: var(--paper); }
         .report-info { flex: 1; min-width: 0; }
         .report-title { font-size: 0.88rem; font-weight: 700; color: var(--ink); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -442,7 +443,7 @@
         .action-btn.view { margin-left: -3px; }
         .dl-wrap { position: relative; display: inline-flex; }
         .action-btn.dl { display: inline-flex; align-items: center; gap: 6px; }
-        .dl-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 150px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all 0.22s var(--ease); z-index: 60; }
+        .dl-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 150px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all 0.22s var(--ease); z-index: 9999; }
         .dl-wrap:hover .dl-menu, .dl-wrap:focus-within .dl-menu { opacity: 1; visibility: visible; transform: translateY(0); }
         .dl-menu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 13px; background: transparent; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.18s; text-align: left; font-family: var(--font-body); color: var(--ink); }
         .dl-menu button:hover { background: rgba(var(--accent-rgb),0.1); }
@@ -549,6 +550,62 @@
         .back-top { position: fixed; right: 30px; bottom: 96px; z-index: 290; width: 46px; height: 46px; border-radius: 14px; border: 1px solid var(--line); background: var(--paper); color: var(--green-deep); box-shadow: var(--shadow-md); display: flex; align-items: center; justify-content: center; font-size: 1rem; opacity: 0; visibility: hidden; transform: translateY(12px); transition: all 0.3s var(--ease); }
         .back-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
         .back-top:hover { background: var(--green); color: #fff; transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+
+        /* ============ AI 导出报告弹窗 ============ */
+        .er-open-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border: none; border-radius: 10px; background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; font-size: 0.8rem; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgba(var(--accent-rgb),0.35); transition: all 0.25s var(--ease); font-family: var(--font-body); }
+        .er-open-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(var(--accent-rgb),0.45); }
+        .er-modal { display: none; position: fixed; inset: 0; z-index: 2000; align-items: center; justify-content: center; }
+        .er-modal.active { display: flex; }
+        .er-backdrop { position: absolute; inset: 0; background: rgba(10,25,15,0.55); backdrop-filter: blur(6px); animation: erFadeIn 0.3s var(--ease); }
+        @keyframes erFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes erUp { from { opacity: 0; transform: translateY(40px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .er-card { position: relative; width: 92%; max-width: 860px; max-height: 88vh; background: var(--paper); border-radius: 22px; box-shadow: 0 40px 100px rgba(0,0,0,0.35); display: flex; flex-direction: column; overflow: hidden; animation: erUp 0.4s var(--ease-out); border: 1px solid var(--line); }
+        .er-glow { position: absolute; top: -60px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(var(--accent-rgb),0.25), transparent 70%); pointer-events: none; z-index: 0; }
+        .er-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }
+        .er-title-wrap { display: flex; align-items: center; gap: 13px; flex: 1; min-width: 0; }
+        .er-icon { width: 44px; height: 44px; border-radius: 13px; background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; box-shadow: 0 8px 20px rgba(var(--accent-rgb),0.3); flex-shrink: 0; }
+        .er-title { font-family: var(--font-display); font-weight: 900; font-size: 1.15rem; color: var(--ink); }
+        .er-subtitle { font-size: 0.76rem; color: var(--ink-faint); margin-top: 2px; }
+        .er-status { display: none; align-items: center; gap: 7px; font-size: 0.76rem; font-weight: 700; color: #e8590c; background: rgba(232,89,12,0.1); border: 1px solid rgba(232,89,12,0.25); padding: 5px 13px; border-radius: 999px; flex-shrink: 0; }
+        .er-status.done { color: var(--green-deep); background: rgba(var(--accent-rgb),0.1); border-color: rgba(var(--accent-rgb),0.3); }
+        .er-status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1.2s ease-in-out infinite; }
+        .er-close { width: 34px; height: 34px; border-radius: 10px; border: none; background: var(--surface); color: var(--ink-soft); cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+        .er-close:hover { background: rgba(255,107,107,0.12); color: #ff6b6b; }
+        .er-body { flex: 1; overflow-y: auto; padding: 22px 24px; position: relative; z-index: 1; }
+        .er-field { margin-bottom: 18px; }
+        .er-field label { display: flex; align-items: center; gap: 7px; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 9px; }
+        .er-field label i { color: var(--green); font-size: 0.78rem; }
+        .er-type-tabs { display: flex; gap: 9px; }
+        .er-type { flex: 1; padding: 11px 0; border: 1.5px solid var(--line); background: var(--surface); border-radius: 11px; font-size: 0.86rem; font-weight: 700; color: var(--ink-soft); cursor: pointer; transition: all 0.22s var(--ease); font-family: var(--font-body); }
+        .er-type:hover { border-color: rgba(var(--accent-rgb),0.4); }
+        .er-type.active { background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; border-color: transparent; box-shadow: 0 6px 16px rgba(var(--accent-rgb),0.3); }
+        .er-dates { display: flex; align-items: center; gap: 10px; }
+        .er-dates input { flex: 1; padding: 10px 13px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 0.86rem; font-family: var(--font-body); }
+        .er-dates input:focus { outline: none; border-color: var(--green); }
+        .er-to { color: var(--ink-faint); font-size: 0.8rem; }
+        .er-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 9px; max-height: 200px; overflow-y: auto; padding: 2px; }
+        .er-tpl { padding: 11px 13px; border: 1.5px solid var(--line); background: var(--surface); border-radius: 11px; cursor: pointer; transition: all 0.22s var(--ease); text-align: left; }
+        .er-tpl:hover { border-color: rgba(var(--accent-rgb),0.4); transform: translateY(-1px); }
+        .er-tpl.active { border-color: var(--green); background: rgba(var(--accent-rgb),0.08); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12); }
+        .er-tpl-name { font-size: 0.82rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+        .er-tpl-intro { font-size: 0.7rem; color: var(--ink-faint); margin-top: 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .er-field textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 0.86rem; font-family: var(--font-body); resize: vertical; box-sizing: border-box; }
+        .er-field textarea:focus { outline: none; border-color: var(--green); }
+        .er-generate { width: 100%; padding: 14px 0; border: none; border-radius: 13px; background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; font-size: 0.95rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 26px rgba(var(--accent-rgb),0.35); transition: all 0.25s var(--ease); display: flex; align-items: center; justify-content: center; gap: 9px; font-family: var(--font-body); }
+        .er-generate:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(var(--accent-rgb),0.45); }
+        .er-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .er-content { white-space: pre-wrap; font-size: 0.88rem; line-height: 1.85; color: var(--ink); font-family: var(--font-body); min-height: 280px; word-break: break-word; }
+        .er-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 60px 0; color: var(--ink-faint); }
+        .er-spinner { width: 38px; height: 38px; border: 3px solid rgba(var(--accent-rgb),0.15); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .er-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 24px; border-top: 1px solid var(--line); background: var(--surface); position: relative; z-index: 1; }
+        .er-foot-left { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+        .er-info { font-size: 0.78rem; color: var(--ink-faint); }
+        .er-token { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 700; color: var(--green-deep); background: rgba(var(--accent-rgb),0.1); padding: 4px 11px; border-radius: 999px; }
+        .er-actions { display: flex; gap: 9px; }
+        .er-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border: 1.5px solid var(--line); background: var(--paper); border-radius: 10px; font-size: 0.82rem; font-weight: 700; color: var(--ink-soft); cursor: pointer; transition: all 0.22s var(--ease); font-family: var(--font-body); }
+        .er-btn:hover { border-color: rgba(var(--accent-rgb),0.4); color: var(--green-deep); transform: translateY(-1px); }
+        .er-btn.primary { background: linear-gradient(135deg, var(--green), var(--green-deep)); color: #fff; border-color: transparent; }
+        @media (max-width: 640px) { .er-card { max-height: 94vh; } .er-footer { flex-direction: column; align-items: stretch; } .er-actions { justify-content: flex-end; } }
     </style>
 </head>
 <body>
@@ -767,7 +824,10 @@
         <section class="card span5 reveal">
             <div class="card-head">
                 <div class="card-title"><span class="ct-icon"><i class="fas fa-file-alt"></i></span>我的报告</div>
-                <span class="count-badge" id="reportCountBadge">0 份</span>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button class="er-open-btn" onclick="openExportModal()"><i class="fas fa-wand-magic-sparkles"></i> AI 导出报告</button>
+                    <span class="count-badge" id="reportCountBadge">0 份</span>
+                </div>
             </div>
             <div class="report-filter">
                 <div class="type-group">
@@ -1640,9 +1700,264 @@
             setTimeout(() => icon.classList.remove('spin'), 600);
         }
 
+        /* ============ AI 导出报告 ============ */
+        let erType = '日报';
+        let erTemplateIndex = 2;
+        let erTemplatesData = [];
+        let erGenMeta = null;
+        let erFullContent = '';
+        let erAbort = null;
+
+        async function openExportModal() {
+            const modal = document.getElementById('exportReportModal');
+            modal.classList.add('active');
+            document.getElementById('erConfigView').style.display = 'block';
+            document.getElementById('erResultView').style.display = 'none';
+            document.getElementById('erStatus').style.display = 'none';
+            document.getElementById('erActions').style.display = 'none';
+            document.getElementById('erToken').style.display = 'none';
+            document.getElementById('erTitle').textContent = 'AI 导出报告';
+            document.getElementById('erInfo').textContent = '配置参数后开始生成';
+            const genBtn = document.getElementById('erGenerateBtn');
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 开始生成报告';
+            erGenMeta = null;
+            erFullContent = '';
+            const today = new Date();
+            const iso = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+            const se = document.getElementById('erStartDate');
+            const ee = document.getElementById('erEndDate');
+            if (!se.value) se.value = iso;
+            if (!ee.value) ee.value = iso;
+            if (erTemplatesData.length === 0) {
+                try {
+                    const res = await fetch('/api/user/report-templates');
+                    const data = await res.json();
+                    if (data.success) { erTemplatesData = data.templates; if (erTemplateIndex >= erTemplatesData.length) erTemplateIndex = 0; renderErTemplates(); }
+                } catch(e) {}
+            } else { renderErTemplates(); }
+        }
+
+        function renderErTemplates() {
+            const container = document.getElementById('erTemplates');
+            container.innerHTML = erTemplatesData.map(function(t, i) {
+                const active = i === erTemplateIndex ? ' active' : '';
+                const cloud = t.is_cloud ? '<i class="fas fa-cloud" style="color:var(--green);font-size:0.7rem;"></i>' : '';
+                return '<div class="er-tpl' + active + '" onclick="selectErTemplate(' + i + ')">' +
+                    '<div class="er-tpl-name">' + cloud + t.name + '</div>' +
+                    '<div class="er-tpl-intro">' + (t.intro || t.desc || '') + '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function selectErTemplate(i) { erTemplateIndex = i; renderErTemplates(); }
+
+        function selectErType(btn) {
+            document.querySelectorAll('.er-type').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            erType = btn.getAttribute('data-type');
+        }
+
+        function closeExportModal() {
+            if (erAbort) { try { erAbort.abort(); } catch(e) {} erAbort = null; }
+            document.getElementById('exportReportModal').classList.remove('active');
+        }
+
+        async function startGenerate() {
+            const startDate = document.getElementById('erStartDate').value;
+            const endDate = document.getElementById('erEndDate').value || startDate;
+            const custom = document.getElementById('erCustom').value.trim();
+            if (!startDate) { alert('请选择开始日期'); return; }
+            const genBtn = document.getElementById('erGenerateBtn');
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在生成…';
+            document.getElementById('erConfigView').style.display = 'none';
+            document.getElementById('erResultView').style.display = 'block';
+            const status = document.getElementById('erStatus');
+            status.style.display = 'inline-flex';
+            status.classList.remove('done');
+            status.innerHTML = '<span class="er-status-dot"></span>生成中';
+            document.getElementById('erTitle').textContent = erType + '报告生成中…';
+            const contentEl = document.getElementById('erContent');
+            contentEl.innerHTML = '<div class="er-loading"><span class="er-spinner"></span>AI 正在撰写报告，请稍候…</div>';
+            document.getElementById('erInfo').textContent = '生成中…';
+            erFullContent = '';
+            erGenMeta = null;
+            let started = false;
+            erAbort = new AbortController();
+            try {
+                const response = await fetch('/api/user/generate-report', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email, type: erType, start_date: startDate, end_date: endDate, template_index: erTemplateIndex, custom_instruction: custom}),
+                    signal: erAbort.signal
+                });
+                const ct = response.headers.get('content-type') || '';
+                if (!response.ok || ct.indexOf('text/event-stream') === -1) {
+                    let msg = '生成失败';
+                    try { const j = await response.json(); if (j.message) msg = j.message; } catch(e) {}
+                    showErError(msg);
+                    return;
+                }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+                while (true) {
+                    const rd = await reader.read();
+                    if (rd.done) break;
+                    buffer += decoder.decode(rd.value, {stream: true});
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    for (let li = 0; li < lines.length; li++) {
+                        const line = lines[li];
+                        if (line.indexOf('data:') !== 0) continue;
+                        const payload = line.slice(5).trim();
+                        if (!payload) continue;
+                        let evt;
+                        try { evt = JSON.parse(payload); } catch(e) { continue; }
+                        if (evt.type === 'chunk') {
+                            if (!started) { contentEl.textContent = ''; started = true; }
+                            erFullContent += evt.content;
+                            contentEl.textContent = erFullContent;
+                            contentEl.scrollTop = contentEl.scrollHeight;
+                            document.getElementById('erInfo').textContent = '已生成 ' + erFullContent.length + ' 字';
+                        } else if (evt.type === 'done') {
+                            erGenMeta = evt;
+                            onErDone(evt);
+                        } else if (evt.type === 'error') {
+                            showErError(evt.message || '生成失败');
+                        }
+                    }
+                }
+            } catch(e) {
+                if (e.name !== 'AbortError') showErError('生成失败：' + e.message);
+            }
+        }
+
+        function onErDone(evt) {
+            const status = document.getElementById('erStatus');
+            status.classList.add('done');
+            status.innerHTML = '<i class="fas fa-check"></i> 已完成';
+            document.getElementById('erTitle').textContent = evt.title || (erType + '报告');
+            document.getElementById('erInfo').textContent = '模板：' + (evt.template || '') + ' · ' + (evt.word_count || 0) + ' 字';
+            if (evt.tokens && evt.tokens.total > 0) {
+                const tk = document.getElementById('erToken');
+                tk.style.display = 'inline-flex';
+                document.getElementById('erTokenText').textContent = 'Token ' + formatTokenCount(evt.tokens.total);
+                tk.title = '输入 ' + (evt.tokens.input || 0) + ' · 输出 ' + (evt.tokens.output || 0);
+            }
+            document.getElementById('erActions').style.display = 'flex';
+            const genBtn = document.getElementById('erGenerateBtn');
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 开始生成报告';
+            loadReports();
+        }
+
+        function showErError(msg) {
+            const status = document.getElementById('erStatus');
+            status.style.display = 'inline-flex';
+            status.classList.remove('done');
+            status.innerHTML = '<i class="fas fa-triangle-exclamation"></i> 失败';
+            document.getElementById('erContent').innerHTML = '<div class="er-loading" style="color:#ff6b6b;"><i class="fas fa-triangle-exclamation" style="font-size:2rem;"></i><span>' + msg + '</span></div>';
+            document.getElementById('erInfo').textContent = msg;
+            const genBtn = document.getElementById('erGenerateBtn');
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 开始生成报告';
+            document.getElementById('erConfigView').style.display = 'block';
+            document.getElementById('erResultView').style.display = 'none';
+        }
+
+        function copyGenerated() {
+            if (!erFullContent) return;
+            const info = document.getElementById('erInfo');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(erFullContent).then(function() { info.textContent = '✓ 已复制到剪贴板'; });
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = erFullContent;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                info.textContent = '✓ 已复制到剪贴板';
+            }
+        }
+
+        function exportGenerated(format) {
+            if (!erGenMeta || !erGenMeta.filename) { alert('报告尚未生成完成'); return; }
+            downloadReport(erGenMeta.filename, format);
+        }
         function logout() {
             fetch('/api/logout', { method: 'POST' }).then(() => { window.location.href = '/'; });
         }
     </script>
+
+    <!-- ============ AI 导出报告弹窗 ============ -->
+    <div id="exportReportModal" class="er-modal">
+        <div class="er-backdrop" onclick="closeExportModal()"></div>
+        <div class="er-card">
+            <div class="er-glow"></div>
+            <div class="er-header">
+                <div class="er-title-wrap">
+                    <div class="er-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                    <div>
+                        <div class="er-title" id="erTitle">AI 导出报告</div>
+                        <div class="er-subtitle">基于工作记录，AI 自动撰写报告</div>
+                    </div>
+                </div>
+                <span class="er-status" id="erStatus"><span class="er-status-dot"></span>生成中</span>
+                <button class="er-close" onclick="closeExportModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="er-body" id="erConfigView">
+                <div class="er-field">
+                    <label><i class="fas fa-file-lines"></i> 报告类型</label>
+                    <div class="er-type-tabs">
+                        <button class="er-type active" data-type="日报" onclick="selectErType(this)">📅 日报</button>
+                        <button class="er-type" data-type="周报" onclick="selectErType(this)">🗓️ 周报</button>
+                        <button class="er-type" data-type="月报" onclick="selectErType(this)">📆 月报</button>
+                    </div>
+                </div>
+                <div class="er-field">
+                    <label><i class="far fa-calendar"></i> 日期范围</label>
+                    <div class="er-dates">
+                        <input type="date" id="erStartDate">
+                        <span class="er-to">至</span>
+                        <input type="date" id="erEndDate">
+                    </div>
+                </div>
+                <div class="er-field">
+                    <label><i class="fas fa-layer-group"></i> 报告模板</label>
+                    <div class="er-templates" id="erTemplates"></div>
+                </div>
+                <div class="er-field">
+                    <label><i class="fas fa-pen-fancy"></i> 自定义指令（可选）</label>
+                    <textarea id="erCustom" rows="2" placeholder="例如：重点突出开发进度，语气更正式……"></textarea>
+                </div>
+                <button class="er-generate" id="erGenerateBtn" onclick="startGenerate()">
+                    <i class="fas fa-wand-magic-sparkles"></i> 开始生成报告
+                </button>
+            </div>
+            <div class="er-body" id="erResultView" style="display:none;">
+                <div class="er-content" id="erContent"></div>
+            </div>
+            <div class="er-footer">
+                <div class="er-foot-left">
+                    <div class="er-info" id="erInfo">配置参数后开始生成</div>
+                    <div class="er-token" id="erToken" style="display:none;"><i class="fas fa-coins"></i> <span id="erTokenText"></span></div>
+                </div>
+                <div class="er-actions" id="erActions" style="display:none;">
+                    <button class="er-btn" onclick="copyGenerated()"><i class="fas fa-copy"></i> 复制</button>
+                    <div class="dl-wrap">
+                        <button class="er-btn primary"><i class="fas fa-download"></i> 导出 <i class="fas fa-chevron-down" style="font-size:0.6rem;"></i></button>
+                        <div class="dl-menu">
+                            <button class="dl-pdf" onclick="exportGenerated('pdf')"><i class="fas fa-file-pdf"></i> 下载 PDF</button>
+                            <button class="dl-word" onclick="exportGenerated('word')"><i class="fas fa-file-word"></i> 下载 Word</button>
+                            <button class="dl-md" onclick="exportGenerated('md')"><i class="fab fa-markdown"></i> 下载 Markdown</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -210,7 +210,8 @@
         .type-group .type-btn:not(:first-child):not(:last-child) { border-left: none; }
         .type-group .type-btn.active { background: var(--lime); border-color: var(--lime); color: var(--bg1); }
         .type-group .type-btn:hover:not(.active) { color: var(--lime); border-color: var(--line-strong); }
-        .report-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; transition: all 0.25s var(--ease); animation: itemIn 0.4s var(--ease-out) both; }
+        .report-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; transition: all 0.25s var(--ease); animation: itemIn 0.4s var(--ease-out) both; position: relative; }
+        .report-item:hover { z-index: 999; }
         .report-item:hover { border-color: var(--line-strong); transform: translateX(4px); }
         .report-info { flex: 1; min-width: 0; }
         .report-title { font-size: 0.87rem; font-weight: 700; color: var(--txt); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -261,7 +262,7 @@
         .action-btn.view { margin-left: -3px; }
         .dl-wrap { position: relative; display: inline-flex; }
         .action-btn.dl { display: inline-flex; align-items: center; gap: 6px; }
-        .dl-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 150px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 16px 44px rgba(0,0,0,0.5); padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all 0.22s var(--ease); z-index: 60; }
+        .dl-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 150px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 16px 44px rgba(0,0,0,0.5); padding: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all 0.22s var(--ease); z-index: 9999; }
         .dl-wrap:hover .dl-menu, .dl-wrap:focus-within .dl-menu { opacity: 1; visibility: visible; transform: translateY(0); }
         .dl-menu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 13px; background: transparent; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.18s; text-align: left; font-family: var(--font-body); color: var(--txt); }
         .dl-menu button:hover { background: rgba(169,227,75,0.1); }
